@@ -1,23 +1,26 @@
 import { z } from 'zod';
 
-// Mirrors the Angular FormGroup's Validators exactly:
-// name: required, min 2 chars
-// email: required, valid email
-// from/to: required
-// departureDate: required
-// returnDate: optional
-// travelers: required, 1-20
 export const step1Schema = z
   .object({
-    name: z.string().trim().min(2, 'Enter your full name (min 2 characters)'),
-    email: z.string().trim().email('Enter a valid email address'),
-    from: z.string().trim().min(1, 'Origin is required'),
-    to: z.string().trim().min(1, 'Destination is required'),
+    name: z.string().trim().min(2, 'Please enter your full name'),
+    email: z.string().trim().email('Please enter a valid email address'),
+    from: z.string().trim().min(2, 'Please enter an origin city'),
+    to: z.string().trim().min(2, 'Please enter a destination city'),
     departureDate: z.string().min(1, 'Travel date is required'),
-    returnDate: z.string().optional().default(''),
-    travelers: z.coerce.number().int().min(1).max(20),
+    returnDate: z.string().optional().or(z.literal('')),
+    travelers: z.coerce.number().int().min(1, 'At least 1 traveler is required').max(20, 'Max 20 travelers'),
   })
-  .refine((data) => !data.returnDate || data.returnDate >= data.departureDate, {
-    message: 'Return date must be on or after the travel date',
-    path: ['returnDate'],
-  });
+  .refine((data) => data.from.trim().toLowerCase() !== data.to.trim().toLowerCase(), {
+    message: 'Origin and destination must be different',
+    path: ['to'],
+  })
+  .refine(
+    (data) => {
+      if (!data.returnDate) return true;
+      return new Date(data.returnDate) >= new Date(data.departureDate);
+    },
+    {
+      message: 'Return date must be on or after the travel date',
+      path: ['returnDate'],
+    }
+  );
