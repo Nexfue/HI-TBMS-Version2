@@ -20,6 +20,7 @@
  * @property {string} name
  * @property {string} location
  * @property {number} rating
+ * @property {number} [reviewCount]
  * @property {number} pricePerNight
  * @property {string[]} amenities
  * @property {RoomType[]} rooms
@@ -35,6 +36,7 @@
  * @property {string} duration    e.g. "2h 15m"
  * @property {number} stops
  * @property {number} price
+ * @property {number} [seatsLeft]
  * @property {string} [from]
  * @property {string} [to]
  */
@@ -52,6 +54,7 @@
  * @property {number} rating
  * @property {number} price
  * @property {string} description
+ * @property {string} [icon]  imageUrl passed through from the backend DTO
  */
 
 /**
@@ -67,6 +70,94 @@
  * @property {number} capacity
  * @property {string[]} features
  * @property {number} pricePerDay
+ * @property {string} [icon]  imageUrl passed through from the backend DTO
+ */
+
+// ====================== Backend DTOs ======================
+// Mirrors the .NET DTOs the real API sends/expects (see apiService.js).
+// These aren't the shapes components work with — apiService.js maps
+// between these and the frontend models above.
+
+/**
+ * @typedef {Object} BackendFlight
+ * @property {string} flightId
+ * @property {string} airline
+ * @property {string} airlineCode
+ * @property {string} flightNumber
+ * @property {string} departureTime  full ISO datetime, e.g. "2024-01-15T06:00:00"
+ * @property {string} arrivalTime    full ISO datetime
+ * @property {string} duration
+ * @property {number} stops
+ * @property {number} price
+ * @property {string} currency
+ */
+
+/**
+ * @typedef {Object} BackendHotel
+ * @property {string} hotelId
+ * @property {string} name
+ * @property {string} location
+ * @property {number} rating
+ * @property {number} pricePerNight
+ * @property {string[]} amenities
+ * @property {string} imageUrl
+ * @property {string} description
+ */
+
+/**
+ * @typedef {Object} BackendActivity
+ * @property {string} activityId
+ * @property {string} name
+ * @property {string} description
+ * @property {string} duration
+ * @property {string} type
+ * @property {string} bestTime
+ * @property {string} imageUrl
+ * @property {string} category
+ */
+
+/**
+ * @typedef {Object} BackendTransport
+ * @property {string} transportId
+ * @property {string} vehicleName
+ * @property {string} type            "Normal" | "Premium" | "Luxury"
+ * @property {string} vehicleType
+ * @property {number} seatingCapacity
+ * @property {number} pricePerDay
+ * @property {string[]} features
+ * @property {string} imageUrl
+ */
+
+/**
+ * @typedef {Object} ItineraryRequest
+ * @property {Object} travelDetails
+ * @property {string} travelDetails.name
+ * @property {string} travelDetails.email
+ * @property {string} travelDetails.origin
+ * @property {string} travelDetails.destination
+ * @property {string} travelDetails.travelDate
+ * @property {string} travelDetails.returnDate
+ * @property {number} travelDetails.adults
+ * @property {number} travelDetails.children
+ * @property {string[]} travelDetails.preferences
+ * @property {string} [travelDetails.additionalNotes]
+ * @property {BackendFlight} departureFlight
+ * @property {BackendFlight} returnFlight
+ * @property {string} seatPreference
+ * @property {string} classPreference
+ * @property {BackendHotel} selectedHotel
+ * @property {string} roomType
+ * @property {string} mealPlan
+ * @property {BackendActivity[]} selectedActivities
+ * @property {BackendTransport} selectedTransport
+ */
+
+/**
+ * @typedef {Object} ItineraryResponse
+ * @property {boolean} success
+ * @property {string} message
+ * @property {string} [pdfBase64]
+ * @property {string} [itineraryId]
  */
 
 /**

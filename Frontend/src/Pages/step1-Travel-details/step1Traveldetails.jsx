@@ -16,10 +16,15 @@ import {
   ExternalLink,
   Quote,
 } from 'lucide-react';
+
 import StepProgress from '../../Components/stepProgress';
 import { step1Schema } from '../../Schema/travelDetailsSchema';
 import { setTravelDetails } from '../../Store/slices/travelSlice';
+import { createTravelDetails } from '../../Models/travel.model';
+import { LOCATIONS } from '../../constants/locations';
 import { todayISO } from '../../utils/dateHelpers';
+
+const CITIES_DATALIST_ID = 'holiday-infinite-cities';
 
 const TRENDING_DESTINATIONS = [
   {
@@ -102,24 +107,26 @@ export default function Step1TravelDetails() {
   const swapLocations = () => {
     const from = watch('from');
     const to = watch('to');
-    setValue('from', to);
-    setValue('to', from);
+    setValue('from', to, { shouldValidate: true });
+    setValue('to', from, { shouldValidate: true });
   };
 
   const onSubmit = (data) => {
     const hasReturn = !!data.returnDate;
     dispatch(
-      setTravelDetails({
-        name: data.name,
-        email: data.email,
-        tripType: hasReturn ? 'round-trip' : 'one-way',
-        from: data.from,
-        to: data.to,
-        departureDate: new Date(data.departureDate).toISOString(),
-        returnDate: hasReturn ? new Date(data.returnDate).toISOString() : '',
-        travelers: data.travelers,
-        travelClass: 'economy',
-      })
+      setTravelDetails(
+        createTravelDetails({
+          name: data.name,
+          email: data.email,
+          tripType: hasReturn ? 'round-trip' : 'one-way',
+          from: data.from,
+          to: data.to,
+          departureDate: new Date(data.departureDate).toISOString(),
+          returnDate: hasReturn ? new Date(data.returnDate).toISOString() : '',
+          travelers: data.travelers,
+          travelClass: 'economy',
+        })
+      )
     );
     navigate('/step2');
   };
@@ -127,6 +134,13 @@ export default function Step1TravelDetails() {
   return (
     <div className="min-h-screen bg-[#f7f9fb] text-[#191c1e] font-['Hanken_Grotesk','Inter',sans-serif]">
       <StepProgress currentStep={1} />
+
+      {/* Shared autocomplete source for origin/destination — see constants/locations.js */}
+      <datalist id={CITIES_DATALIST_ID}>
+        {LOCATIONS.map((city) => (
+          <option key={city} value={city} />
+        ))}
+      </datalist>
 
       <main className="max-w-[1280px] mx-auto px-10 pt-12 pb-16">
         {/* ── Page Title ─────────────────────────────────────────────── */}
@@ -171,7 +185,9 @@ export default function Step1TravelDetails() {
                   label="Origin"
                   required
                   icon={<PlaneTakeoff className="w-[15px] h-[15px]" />}
-                  placeholder="New York (JFK)"
+                  placeholder="e.g. Mumbai"
+                  list={CITIES_DATALIST_ID}
+                  autoComplete="off"
                   error={errors.from}
                   {...register('from')}
                 />
@@ -187,7 +203,9 @@ export default function Step1TravelDetails() {
                   label="Destination"
                   required
                   icon={<PlaneLanding className="w-[15px] h-[15px]" />}
-                  placeholder="London (LHR)"
+                  placeholder="e.g. London"
+                  list={CITIES_DATALIST_ID}
+                  autoComplete="off"
                   error={errors.to}
                   {...register('to')}
                 />
@@ -240,6 +258,7 @@ export default function Step1TravelDetails() {
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
+                {errors.travelers && <span className="mt-1 block text-xs text-[#ba1a1a]">{errors.travelers.message}</span>}
               </div>
 
               {/* Continue button */}
@@ -326,4 +345,3 @@ export default function Step1TravelDetails() {
     </div>
   );
 }
-
