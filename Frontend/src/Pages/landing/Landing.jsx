@@ -43,6 +43,7 @@ const HotelIcon = ({ className }) => (
   </svg>
 );
 
+
 const HolidayIcon = ({ className }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path d="M12 3a9 9 0 019 9c-4 0-9-1-9-9zm0 0a9 9 0 00-9 9c4 0 9-1 9-9zm0 0v18" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
@@ -75,11 +76,11 @@ const TagIcon = ({ className }) => (
 );
 
 const SERVICE_OPTIONS = [
-  { key: 'flights', label: 'Flights', Icon: FlightIcon },
-  { key: 'hotels', label: 'Hotels', Icon: HotelIcon },
-  { key: 'holiday-packages', label: 'Holiday Packages', Icon: HolidayIcon },
-  { key: 'visa', label: 'Visa', Icon: VisaIcon },
-  { key: 'cruise', label: 'Cruise', Icon: CruiseIcon },
+  { key: "flights", label: "Flights", Icon: FlightIcon , path : '/' },
+  { key: "hotels", label: "Hotels", Icon: HotelIcon , path : '/step3' },
+  { key: "holiday-packages", label: "Holiday Packages", Icon: HolidayIcon },
+  { key: "visa", label: "Visa", Icon: VisaIcon },
+  { key: "cruise", label: "Cruise", Icon: CruiseIcon },
 ];
 
 const PinIcon = ({ className }) => (
@@ -565,7 +566,10 @@ export default function Landing() {
             <button
               key={service.key}
               type="button"
-              onClick={() => setActiveService(service.key)}
+            onClick={() => {
+            setActiveService(service.key);
+             navigate(service.path);
+              }}
               className={`flex flex-col items-center gap-1.5 text-xs font-semibold transition-colors ${
                 activeService === service.key ? 'text-blue-600' : 'text-slate-600 hover:text-slate-900'
               }`}
