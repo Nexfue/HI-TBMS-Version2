@@ -19,7 +19,7 @@ import {
 import StepProgress from '../../Components/stepProgress';
 import { step1Schema } from '../../Schema/travelDetailsSchema';
 import { setTravelDetails } from '../../Store/slices/travelSlice';
-//import { todayISO } from '../utils/dateHelpers';
+import { todayISO } from '../../utils/dateHelpers';
 
 const TRENDING_DESTINATIONS = [
   {
