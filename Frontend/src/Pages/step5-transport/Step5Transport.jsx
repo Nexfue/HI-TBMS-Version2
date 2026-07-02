@@ -12,14 +12,14 @@ import {
   selectDepartureFlight, selectReturnFlight, selectHotel, selectSelectedRoom,
   selectSelectedSeat, selectSelectedActivities, selectMealPlan,
   setItineraryResult,
-} from '../../store/travelSlice';
+} from '../../Store/slices/travelSlice';
 import {
   getTransports, generateItinerary,
   getBackendFlight, getBackendHotel, getBackendActivity, getBackendTransport,
-} from '../../services/apiService';
+} from '../../Service/apiService';
 // Swap the import above for './apiService.mock' to develop against fake
 // data + a fake PDF before the real backend endpoints exist.
-import SuccessDialog from '../common/SuccessDialog';
+import SuccessDialog from '../../common/SuccessDialog';
 
 const FILTERS = ['All', 'Normal', 'Premium', 'Luxury'];
 

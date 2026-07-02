@@ -19,7 +19,7 @@ import {
   selectActivitiesCost,
   selectTransportCost,
   selectTotalCost,
-} from '../store/slices/travelSlice';
+} from '../../Store/slices/travelSlice'
 
 const formatNumber = (n) => new Intl.NumberFormat('en-IN').format(n ?? 0);
 

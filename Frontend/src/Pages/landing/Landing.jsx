@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { setTravelDetails } from '../store/slices/travelSlice';
+import { setTravelDetails } from '../../Store/slices/travelSlice';
 import {
   CLASS_OPTIONS,
   getAirportCode,
@@ -9,8 +9,8 @@ import {
   getCityCountry,
   getAirportDisplayName,
   getFilteredLocationsBySection,
-} from '../data/airports';
-import { todayISO, getDayPart, getMonthYearPart, getDayName } from '../utils/dateHelpers';
+} from '../../Data/airports';
+import { todayISO, getDayPart, getMonthYearPart, getDayName } from '../../utils/dateHelpers';
 
 // ── Small shared icons ──────────────────────────────────────────────────────
 const SearchIcon = ({ className }) => (
@@ -1005,5 +1005,4 @@ export default function Landing() {
     </div>
   );
 }
-import { useRef, useState, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+

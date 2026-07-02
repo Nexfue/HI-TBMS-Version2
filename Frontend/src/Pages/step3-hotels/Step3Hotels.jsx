@@ -9,9 +9,9 @@ import {
 import {
   selectTravelDetails, selectHotel, selectSelectedRoom, selectNights,
   setHotel, setSelectedRoom,
-} from '../../store/travelSlice';
-import { searchHotels } from '../../services/apiService';
-import { useAmenityIcon } from '../../hooks/useAmenityIcon';
+} from '../../Store/slices/travelSlice';
+import { searchHotels } from '../../Service/apiService';
+//import { useAmenityIcon } from '../../hooks/useAmenityIcon';
 
 const MAX_PRICE = 15000;
 
@@ -796,5 +796,3 @@ export default function Step3Hotels() {
     </div>
   );
 }
-import { useState, useMemo, useCallback, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';

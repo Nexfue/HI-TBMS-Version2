@@ -18,8 +18,8 @@ import {
   Armchair,
   Loader2,
 } from 'lucide-react';
-import { searchFlights } from '../services/api';
-import { setFlights, setMultiCityFlights, setSelectedSeat } from '../store/slices/travelSlice';
+import { searchFlights } from '../../Service/apiService';
+import { setDepartureFlight, setReturnFlight, setMultiCityFlights, setSelectedSeat } from '../../Store/slices/travelSlice';
 
 const SORT_TABS = [
   { value: 'price-asc', label: 'Cheapest' },
@@ -284,13 +284,14 @@ export default function Step2Flights() {
 
     if (isMultiCity) {
       dispatch(setMultiCityFlights(selectedFlights));
-      dispatch(setFlights({ departure: selectedFlights[0], return: null }));
+      dispatch(setDepartureFlight(selectedFlights[0]));
       dispatch(setSelectedSeat(selectedSeat));
       navigate('/step3');
       return;
     }
 
-    dispatch(setFlights({ departure: departureFlight, return: isRoundTrip ? returnFlight : null }));
+    dispatch(setDepartureFlight(departureFlight));
+    dispatch(setReturnFlight(isRoundTrip ? returnFlight : null));
     dispatch(setSelectedSeat(selectedSeat));
     navigate('/step3');
   };
@@ -641,5 +642,3 @@ export default function Step2Flights() {
     </div>
   );
 }
-import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';

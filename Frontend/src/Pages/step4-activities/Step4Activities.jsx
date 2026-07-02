@@ -8,8 +8,8 @@ import {
   Landmark, Palette, Building2, MountainSnow, Image, FerrisWheel,
 } from 'lucide-react';
 
-import { selectTravelDetails, selectSelectedActivities, setSelectedActivities } from '../../store/travelSlice';
-import { getActivities } from '../../services/apiService';
+import { selectTravelDetails, selectSelectedActivities, setSelectedActivities } from '../../Store/slices/travelSlice';
+import { getActivities } from '../../Service/apiService';
 // Swap the import above for './apiService.mock' to develop against fake
 // data before the real /api/activities endpoint exists.
 
@@ -842,5 +842,4 @@ export default function Step4Activities() {
     </div>
   );
 }
-import { useState, useMemo, useCallback, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+
