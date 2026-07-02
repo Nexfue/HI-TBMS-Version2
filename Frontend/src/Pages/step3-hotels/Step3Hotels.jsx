@@ -9,9 +9,9 @@ import {
 import {
   selectTravelDetails, selectHotel, selectSelectedRoom, selectNights,
   setHotel, setSelectedRoom,
-} from '../../store/travelSlice';
-import { searchHotels } from '../../services/apiService';
-import { useAmenityIcon } from '../../hooks/useAmenityIcon';
+} from '../../Store/slices/travelSlice';
+import { searchHotels } from '../../Service/apiService';
+
 
 const MAX_PRICE = 15000;
 
@@ -459,7 +459,7 @@ function formatInr(value) {
 export default function Step3Hotels() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { amenityIcon, amenityLabel } = useAmenityIcon();
+  
 
   const travelDetails = useSelector(selectTravelDetails);
   const storedHotel = useSelector(selectHotel);
@@ -558,6 +558,43 @@ export default function Step3Hotels() {
     // Runs once on mount, mirroring Angular's ngOnInit.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  const amenityIcon = (amenity) => {
+  const map = {
+    wifi: "wifi",
+    "free wifi": "wifi",
+    pool: "pool",
+    "infinity pool": "pool",
+    "swimming pool": "pool",
+    spa: "spa",
+    restaurant: "restaurant",
+    dining: "restaurant",
+    gym: "fitness_center",
+    fitness: "fitness_center",
+    bar: "local_bar",
+    parking: "local_parking",
+    ac: "ac_unit",
+    "air conditioning": "ac_unit",
+    breakfast: "breakfast_dining",
+    "free breakfast": "breakfast_dining",
+    beach: "beach_access",
+    beachfront: "beach_access",
+    deck: "deck",
+    terrace: "deck",
+    business: "business_center",
+    concierge: "room_service",
+    "room service": "room_service",
+    laundry: "local_laundry_service",
+    pets: "pets",
+  };
+
+  const key = amenity.toLowerCase();
+
+  for (const k in map) {
+    if (key.includes(k)) return map[k];
+  }
+
+  return "check_circle";
+};
 
   return (
     <div className="page-wrapper">
@@ -796,5 +833,3 @@ export default function Step3Hotels() {
     </div>
   );
 }
-import { useState, useMemo, useCallback, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';

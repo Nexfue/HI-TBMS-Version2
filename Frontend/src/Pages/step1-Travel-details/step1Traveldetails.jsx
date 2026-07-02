@@ -16,10 +16,10 @@ import {
   ExternalLink,
   Quote,
 } from 'lucide-react';
-import StepProgress from '../components/StepProgress';
-import { step1Schema } from '../schemas/travelDetailsSchema';
-import { setTravelDetails } from '../store/slices/travelSlice';
-import { todayISO } from '../utils/dateHelpers';
+import StepProgress from '../../Components/stepProgress';
+import { step1Schema } from '../../Schema/travelDetailsSchema';
+import { setTravelDetails } from '../../Store/slices/travelSlice';
+import { todayISO } from '../../utils/dateHelpers';
 
 const TRENDING_DESTINATIONS = [
   {
@@ -326,4 +326,4 @@ export default function Step1TravelDetails() {
     </div>
   );
 }
-import { useDispatch } from 'react-redux';
+

@@ -18,8 +18,13 @@ import {
   Armchair,
   Loader2,
 } from 'lucide-react';
-import { searchFlights } from '../../Service/api';
-import { setFlights, setMultiCityFlights, setSelectedSeat } from '../../Store/slice/travelSlice';
+import { searchFlights } from '../../Service/apiService';
+import {
+  setDepartureFlight as setDepartureFlightAction,
+  setReturnFlight as setReturnFlightAction,
+  setMultiCityFlights,
+  setSelectedSeat,
+} from '../../Store/slices/travelSlice';
 
 const SORT_TABS = [
   { value: 'price-asc', label: 'Cheapest' },
@@ -284,13 +289,14 @@ export default function Step2Flights() {
 
     if (isMultiCity) {
       dispatch(setMultiCityFlights(selectedFlights));
-      dispatch(setFlights({ departure: selectedFlights[0], return: null }));
+      dispatch(setDepartureFlightAction(selectedFlights[0]));
       dispatch(setSelectedSeat(selectedSeat));
       navigate('/step3');
       return;
     }
 
-    dispatch(setFlights({ departure: departureFlight, return: isRoundTrip ? returnFlight : null }));
+    dispatch(setDepartureFlightAction(departureFlight));
+    dispatch(setReturnFlightAction(isRoundTrip ? returnFlight : null));
     dispatch(setSelectedSeat(selectedSeat));
     navigate('/step3');
   };
