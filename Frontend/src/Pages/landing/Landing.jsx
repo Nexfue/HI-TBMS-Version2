@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { setTravelDetails } from '../store/slices/travelSlice';
+import { setTravelDetails } from '../../Store/slice/travelSlice';
 import {
   CLASS_OPTIONS,
   getAirportCode,
@@ -9,8 +9,8 @@ import {
   getCityCountry,
   getAirportDisplayName,
   getFilteredLocationsBySection,
-} from '../data/airports';
-import { todayISO, getDayPart, getMonthYearPart, getDayName } from '../utils/dateHelpers';
+} from '../../Data/airports';
+import { todayISO, getDayPart, getMonthYearPart, getDayName } from '../../helpers/utils/dateHelpers';
 
 // ── Small shared icons ──────────────────────────────────────────────────────
 const SearchIcon = ({ className }) => (
@@ -30,6 +30,57 @@ const ArrowRightIcon = ({ className }) => (
     <path d="M17 8l4 4m0 0l-4 4m4-4H3" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
   </svg>
 );
+
+const FlightIcon = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path d="M10.5 21l1.5-5-7-3.5V9l8 2V6a2 2 0 114 0v5l8-2v3.5l-7 3.5 1.5 5-3.5-1.5L10.5 21z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+  </svg>
+);
+
+const HotelIcon = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path d="M3 21V7a1 1 0 011-1h6a1 1 0 011 1v14M3 21h18M11 21v-6a1 1 0 011-1h6a1 1 0 011 1v6M7 6V4a1 1 0 011-1h2a1 1 0 011 1v2M7 10h.01M7 14h.01" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+  </svg>
+);
+
+const HolidayIcon = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path d="M12 3a9 9 0 019 9c-4 0-9-1-9-9zm0 0a9 9 0 00-9 9c4 0 9-1 9-9zm0 0v18" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+  </svg>
+);
+
+const VisaIcon = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <rect height="16" rx="2" strokeWidth="1.5" width="12" x="6" y="4" />
+    <path d="M12 8a2 2 0 100 4 2 2 0 000-4zm-4 8h8" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+  </svg>
+);
+
+const CruiseIcon = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path d="M4 19l1.5-6h13L20 19M6 13V5h5l3 4M3 21c1.5 1 3.5 1 5 0s3.5-1 5 0 3.5 1 5 0" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+  </svg>
+);
+
+const ShieldIcon = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+  </svg>
+);
+
+const TagIcon = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path d="M20.59 13.41L11 3.83A2 2 0 009.59 3.24L4 3v5.59a2 2 0 00.59 1.41l9.59 9.59a2 2 0 002.82 0l3.59-3.59a2 2 0 000-2.82zM7.5 7.5h.01" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+  </svg>
+);
+
+const SERVICE_OPTIONS = [
+  { key: 'flights', label: 'Flights', Icon: FlightIcon },
+  { key: 'hotels', label: 'Hotels', Icon: HotelIcon },
+  { key: 'holiday-packages', label: 'Holiday Packages', Icon: HolidayIcon },
+  { key: 'visa', label: 'Visa', Icon: VisaIcon },
+  { key: 'cruise', label: 'Cruise', Icon: CruiseIcon },
+];
 
 const PinIcon = ({ className }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 20 20">
@@ -188,6 +239,9 @@ export default function Landing() {
   const [travelers, setTravelers] = useState(1);
   const [travelClass, setTravelClass] = useState('economy');
   const [touched, setTouched] = useState({ from: false, to: false });
+  const [specialFare, setSpecialFare] = useState('regular');
+  const [priceDropProtection, setPriceDropProtection] = useState(false);
+  const [activeService, setActiveService] = useState('flights');
 
   const [multiCitySegments, setMultiCitySegments] = useState([
     { from: 'Delhi', to: 'Bangkok', departureDate: '' },
@@ -459,7 +513,7 @@ export default function Landing() {
                   maxWidth: '420px',
                 }}
               >
-                Your Dream<br />Journey<br />Begins Here.
+                Experience<br />The Magic Of<br />Flight !
               </h1>
               <div className="flex items-center space-x-4">
                 <button
@@ -477,9 +531,11 @@ export default function Landing() {
           </div>
 
           {/* Step indicators */}
-          <div className="absolute left-8 top-1/2 -translate-y-1/2 flex flex-col space-y-4">
+          <div className="absolute left-8 top-1/2 -translate-y-1/2 flex flex-col items-center">
             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-sm font-bold shadow-sm border border-slate-200">1</div>
+            <div className="w-px h-10 bg-slate-300" />
             <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-sm font-bold shadow-sm border border-slate-300">2</div>
+            <div className="w-px h-10 bg-slate-300" />
             <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-sm font-bold shadow-sm border border-slate-300">3</div>
           </div>
 
@@ -504,6 +560,22 @@ export default function Landing() {
 
       {/* ── Booking Bar ────────────────────────────────────────────────── */}
       <section ref={bookingSectionRef} className="max-w-7xl mx-auto px-4 -mt-[33px] relative z-20">
+        <div className="flex items-center justify-center gap-10 bg-white border border-slate-100 rounded-full py-4 px-8 mb-3 shadow-sm">
+          {SERVICE_OPTIONS.map((service) => (
+            <button
+              key={service.key}
+              type="button"
+              onClick={() => setActiveService(service.key)}
+              className={`flex flex-col items-center gap-1.5 text-xs font-semibold transition-colors ${
+                activeService === service.key ? 'text-blue-600' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <service.Icon className="w-5 h-5" />
+              <span>{service.label}</span>
+              <span className={`h-0.5 w-full rounded-full ${activeService === service.key ? 'bg-blue-600' : 'bg-transparent'}`} />
+            </button>
+          ))}
+        </div>
         <form onSubmit={searchFlights}>
           <div className="bg-white rounded-[2rem] shadow-2xl p-8 border border-slate-100">
             {/* Trip type selector */}
@@ -527,9 +599,7 @@ export default function Landing() {
                   </span>
                 </label>
               ))}
-              <div className="ml-auto flex items-center space-x-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-full text-xs font-bold">
-                <span>Try our AI Assistant for Flights &amp; Stays</span>
-              </div>
+              <span className="ml-auto text-xs font-medium text-slate-400">Book International and Domestic Flights</span>
             </div>
 
             {/* ONE WAY */}
@@ -835,6 +905,68 @@ export default function Landing() {
                 );
               })}
 
+            {/* Special Fares */}
+            <div className="mt-8 pt-6 border-t border-slate-100 flex items-start gap-4 flex-wrap">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide pt-2 w-16 flex-shrink-0">
+                Special<br />Fares
+              </p>
+              <div className="flex items-center gap-3 flex-wrap">
+                {[
+                  { key: 'regular', label: 'Regular', sub: 'Regular Fares' },
+                  { key: 'student', label: 'Student', sub: 'Extra discounts/baggage' },
+                  { key: 'armed', label: 'Armed Forces', sub: 'Up to ₹600 off' },
+                  { key: 'gst', label: 'Have a GST number?', sub: 'Upto 10% Extra Savings !', badge: 'NEW' },
+                  { key: 'senior', label: 'Senior Citizen', sub: 'Up to ₹600 off' },
+                  { key: 'doctor', label: 'Doctor and Nurses', sub: 'Up to ₹600 off' },
+                ].map((fare) => (
+                  <button
+                    key={fare.key}
+                    type="button"
+                    onClick={() => setSpecialFare(fare.key)}
+                    className={`relative text-left px-4 py-2 rounded-xl border text-xs transition-colors ${
+                      specialFare === fare.key
+                        ? 'border-blue-600 bg-blue-50 text-blue-700'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {fare.badge && (
+                      <span className="absolute -top-2 -right-2 bg-pink-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                        {fare.badge}
+                      </span>
+                    )}
+                    <span className="block font-bold">{fare.label}</span>
+                    <span className="block text-[10px] text-slate-400">{fare.sub}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Price drop protection + quick links */}
+            <div className="mt-6 pt-6 border-t border-slate-100 flex items-center justify-between flex-wrap gap-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={priceDropProtection}
+                  onChange={(e) => setPriceDropProtection(e.target.checked)}
+                  className="accent-blue-600"
+                />
+                <span className="text-sm text-slate-600">
+                  Add Price Drop Protection <span className="text-slate-400">If the price drops, we&apos;ll refund the difference.</span>{' '}
+                  <a href="#" className="text-blue-600 font-medium underline-offset-2 hover:underline">View Details</a>
+                </span>
+                <ShieldIcon className="w-4 h-4 text-blue-500" />
+              </label>
+              <div className="flex items-center gap-3">
+                <button type="button" className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                  <FlightIcon className="w-4 h-4" /> Flight Tracker
+                </button>
+                <button type="button" className="relative flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                  <span className="absolute -top-2 -right-2 bg-pink-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">10% off</span>
+                  <TagIcon className="w-4 h-4" /> Shop Duty Free
+                </button>
+              </div>
+            </div>
+
             {/* Offers + Search */}
             <div className="mt-8 pt-8 border-t border-slate-100 flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3 flex-wrap">
@@ -944,7 +1076,7 @@ export default function Landing() {
             </div>
             <div className="absolute -bottom-8 -left-8 bg-white p-8 rounded-[2rem] shadow-xl border border-slate-100">
               <p className="text-blue-600 text-3xl font-black">20% OFF</p>
-              <p className="text-xs font-bold text-slate-400 mt-1">Till 28th Of March 2024</p>
+              <p className="text-xs font-bold text-slate-400 mt-1">Till 28th Of March 2025</p>
             </div>
           </div>
           <div className="w-full md:w-1/2">
@@ -1005,5 +1137,3 @@ export default function Landing() {
     </div>
   );
 }
-import { useRef, useState, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
