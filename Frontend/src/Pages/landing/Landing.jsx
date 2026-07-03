@@ -78,9 +78,9 @@ const TagIcon = ({ className }) => (
 const SERVICE_OPTIONS = [
   { key: "flights", label: "Flights", Icon: FlightIcon , path : '/' },
   { key: "hotels", label: "Hotels", Icon: HotelIcon , path : '/step3' },
-  { key: "holiday-packages", label: "Holiday Packages", Icon: HolidayIcon },
-  { key: "visa", label: "Visa", Icon: VisaIcon },
-  { key: "cruise", label: "Cruise", Icon: CruiseIcon },
+  { key: "holiday-packages", label: "Holiday Packages", Icon: HolidayIcon , path : '/step4' },
+  { key: "visa", label: "Visa", Icon: VisaIcon , path: '/step5' },
+  { key: "cruise", label: "Cruise", Icon: CruiseIcon , path : '/step1' },
 ];
 
 const PinIcon = ({ className }) => (
