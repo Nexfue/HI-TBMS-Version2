@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { MapPin, CalendarDays, Users, Minus, Plus, Search, X } from 'lucide-react';
+import { Minus, Plus, X } from 'lucide-react';
 import { todayISO } from '../../utils/dateHelpers';
 import ServiceTabs from '../../Components/serviceTabs';
 import HeaderHero from '../../Components/HeaderHero';
@@ -20,14 +20,19 @@ const PinIcon = ({ className }) => (
 
 // ── Hotel booking helpers/constants ─────────────────────────────────────────
 const PRICE_BANDS = [
-  { id: '0-1500', label: '₹0 – ₹1,500' },
-  { id: '1500-2500', label: '₹1,500 – ₹2,500' },
-  { id: '2500-4000', label: '₹2,500 – ₹4,000' },
-  { id: '4000-6000', label: '₹4,000 – ₹6,000' },
-  { id: '6000+', label: '₹6,000+' },
+  { id: '0-1500', label: '₹0-₹1500' },
+  { id: '1500-2500', label: '₹1500-₹2500' },
+  { id: '2500-4000', label: '₹2500-₹4000' },
+  { id: '4000-6000', label: '₹4000-₹6000' },
+  { id: '6000+', label: '₹6000+' },
 ];
 
-const TRENDING = ['New York, United States', 'London, United Kingdom', 'Bangkok, Thailand', 'Goa, India'];
+const TRENDING = [
+  { city: 'London', country: 'United Kingdom' },
+  { city: 'Dubai', country: 'United Arab Emirates' },
+  { city: 'Mumbai', country: 'India' },
+  { city: 'Goa', country: 'India' }
+];
 
 const addDays = (isoDate, days) => {
   const d = isoDate ? new Date(isoDate) : new Date();
@@ -38,7 +43,7 @@ const addDays = (isoDate, days) => {
 const formatDisplayDate = (isoDate) => {
   if (!isoDate) return '';
   const d = new Date(isoDate);
-  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' });
+  return d.toLocaleDateString('en-IN', { day: 'numeric' }) + " " + d.toLocaleDateString('en-IN', { month: 'short' }) + "'" + d.toLocaleDateString('en-IN', { year: '2-digit' });
 };
 
 const dayName = (isoDate) => {
@@ -46,7 +51,7 @@ const dayName = (isoDate) => {
   return new Date(isoDate).toLocaleDateString('en-IN', { weekday: 'long' });
 };
 
-// ── Rooms & Guests popover (used inside the hotel booking form) ────────────
+// ── Rooms & Guests popover ─────────────────────────────────────────────────
 function RoomsGuestsPopover({ rooms, onChange, onClose }) {
   const totalAdults = rooms.reduce((s, r) => s + r.adults, 0);
   const totalChildren = rooms.reduce((s, r) => s + r.children, 0);
@@ -70,10 +75,10 @@ function RoomsGuestsPopover({ rooms, onChange, onClose }) {
   return (
     <div
       onClick={(e) => e.stopPropagation()}
-      className="absolute top-full left-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-[#c3c5d9]/40 z-50 p-4"
+      className="absolute top-full left-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 p-4 text-left"
     >
       <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-bold text-[#191c1e]">
+        <span className="text-sm font-bold text-gray-800">
           {rooms.length} Room{rooms.length !== 1 ? 's' : ''} &bull; {totalAdults} Adult{totalAdults !== 1 ? 's' : ''}
           {totalChildren > 0 && `, ${totalChildren} Child${totalChildren !== 1 ? 'ren' : ''}`}
         </span>
@@ -81,32 +86,32 @@ function RoomsGuestsPopover({ rooms, onChange, onClose }) {
           <button
             type="button"
             onClick={addRoom}
-            className="text-xs font-bold text-[#003ec7] border border-[#003ec7] rounded px-2.5 py-1 hover:bg-[#003ec7]/5 transition-colors"
+            className="text-xs font-bold text-blue-600 border border-blue-600 rounded px-2.5 py-1 hover:bg-blue-50 transition-colors"
           >
             + Add Room
           </button>
         )}
       </div>
 
-      <div className="flex flex-col gap-3 max-h-72 overflow-y-auto">
+      <div className="flex flex-col gap-3 max-h-60 overflow-y-auto">
         {rooms.map((room, i) => (
-          <div key={i} className="border border-[#c3c5d9]/40 rounded-lg p-3">
+          <div key={i} className="border border-gray-100 rounded-lg p-3">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-[#434656] uppercase tracking-wide">Room {i + 1}</span>
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Room {i + 1}</span>
               {rooms.length > 1 && (
-                <button type="button" onClick={() => removeRoom(i)} className="text-[#434656] hover:text-[#ba1a1a] transition-colors">
+                <button type="button" onClick={() => removeRoom(i)} className="text-gray-400 hover:text-red-500 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               )}
             </div>
 
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-[#191c1e]">Adults</span>
+              <span className="text-sm text-gray-700">Adults</span>
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => updateRoom(i, 'adults', -1, 1)}
-                  className="w-7 h-7 rounded-full border border-[#c3c5d9] flex items-center justify-center text-[#434656] hover:border-[#003ec7] hover:text-[#003ec7]"
+                  className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-blue-600 hover:text-blue-600"
                 >
                   <Minus className="w-3.5 h-3.5" />
                 </button>
@@ -114,7 +119,7 @@ function RoomsGuestsPopover({ rooms, onChange, onClose }) {
                 <button
                   type="button"
                   onClick={() => updateRoom(i, 'adults', 1, 1)}
-                  className="w-7 h-7 rounded-full border border-[#c3c5d9] flex items-center justify-center text-[#434656] hover:border-[#003ec7] hover:text-[#003ec7]"
+                  className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-blue-600 hover:text-blue-600"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
@@ -122,12 +127,12 @@ function RoomsGuestsPopover({ rooms, onChange, onClose }) {
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-sm text-[#191c1e]">Children</span>
+              <span className="text-sm text-gray-700">Children</span>
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => updateRoom(i, 'children', -1, 0)}
-                  className="w-7 h-7 rounded-full border border-[#c3c5d9] flex items-center justify-center text-[#434656] hover:border-[#003ec7] hover:text-[#003ec7]"
+                  className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-blue-600 hover:text-blue-600"
                 >
                   <Minus className="w-3.5 h-3.5" />
                 </button>
@@ -135,7 +140,7 @@ function RoomsGuestsPopover({ rooms, onChange, onClose }) {
                 <button
                   type="button"
                   onClick={() => updateRoom(i, 'children', 1, 0)}
-                  className="w-7 h-7 rounded-full border border-[#c3c5d9] flex items-center justify-center text-[#434656] hover:border-[#003ec7] hover:text-[#003ec7]"
+                  className="w-7 h-7 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-blue-600 hover:text-blue-600"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
@@ -148,9 +153,46 @@ function RoomsGuestsPopover({ rooms, onChange, onClose }) {
       <button
         type="button"
         onClick={onClose}
-        className="w-full mt-3 bg-[#0052ff] text-white rounded-lg py-2 text-sm font-bold hover:opacity-90 transition-opacity"
+        className="w-full mt-3 bg-blue-600 text-white rounded-lg py-2 text-sm font-bold hover:opacity-90 transition-opacity"
       >
         Apply
+      </button>
+    </div>
+  );
+}
+
+// ── Price Bands popover ─────────────────────────────────────────────────────
+function PriceBandsPopover({ selected, onToggle, onClose }) {
+  return (
+    <div 
+      onClick={(e) => e.stopPropagation()}
+      className="absolute top-full right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 p-3 text-left"
+    >
+      <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wide">Select Budget</p>
+      <div className="flex flex-col gap-1">
+        {PRICE_BANDS.map((band) => {
+          const active = selected.includes(band.id);
+          return (
+            <button
+              key={band.id}
+              type="button"
+              onClick={() => onToggle(band.id)}
+              className={`w-full text-left px-2.5 py-1.5 rounded text-xs font-semibold transition-colors flex items-center justify-between ${
+                active ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <span>{band.label}</span>
+              {active && <span className="text-xs">✓</span>}
+            </button>
+          );
+        })}
+      </div>
+      <button
+        type="button"
+        onClick={onClose}
+        className="w-full mt-2 bg-gray-100 text-gray-700 rounded py-1 text-xs font-bold hover:bg-gray-200 transition-colors"
+      >
+        Close
       </button>
     </div>
   );
@@ -163,31 +205,34 @@ export default function Landing() {
   const today = todayISO();
 
   // ── Hotel booking form state ─────────────────────────────────────────
-  const [location, setLocation] = useState(travelDetails?.to || '');
+  const [location, setLocation] = useState(travelDetails?.to || 'Goa');
   const [checkIn, setCheckIn] = useState(travelDetails?.departureDate?.split('T')[0] || today);
   const [checkOut, setCheckOut] = useState(travelDetails?.returnDate?.split('T')[0] || addDays(today, 1));
   const [rooms, setRooms] = useState([{ adults: 2, children: 0 }]);
   const [selectedPriceBands, setSelectedPriceBands] = useState([]);
+  
+  // Panel triggers
   const [showRoomsPanel, setShowRoomsPanel] = useState(false);
+  const [showPricePanel, setShowPricePanel] = useState(false);
 
-  const wrapperRef = useRef(null);
+  const roomsWrapperRef = useRef(null);
+  const priceWrapperRef = useRef(null);
 
   useEffect(() => {
     const closeOnOutsideClick = (e) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) setShowRoomsPanel(false);
+      if (roomsWrapperRef.current && !roomsWrapperRef.current.contains(e.target)) setShowRoomsPanel(false);
+      if (priceWrapperRef.current && !priceWrapperRef.current.contains(e.target)) setShowPricePanel(false);
     };
     document.addEventListener('click', closeOnOutsideClick);
     return () => document.removeEventListener('click', closeOnOutsideClick);
   }, []);
 
   const totalAdults = rooms.reduce((s, r) => s + r.adults, 0);
-  const totalChildren = rooms.reduce((s, r) => s + r.children, 0);
 
-  const roomsSummary = useMemo(() => {
-    const parts = [`${rooms.length} Room${rooms.length !== 1 ? 's' : ''}`, `${totalAdults} Adult${totalAdults !== 1 ? 's' : ''}`];
-    if (totalChildren > 0) parts.push(`${totalChildren} Child${totalChildren !== 1 ? 'ren' : ''}`);
-    return parts.join(', ');
-  }, [rooms.length, totalAdults, totalChildren]);
+  const priceSummaryText = useMemo(() => {
+    if (selectedPriceBands.length === 0) return 'Select range...';
+    return selectedPriceBands.map(id => PRICE_BANDS.find(b => b.id === id)?.label).join(', ');
+  }, [selectedPriceBands]);
 
   const togglePriceBand = (id) => {
     setSelectedPriceBands((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
@@ -198,7 +243,7 @@ export default function Landing() {
     try {
       el?.showPicker?.();
     } catch {
-      /* Safari fallback: input still opens on click */
+      /* Fallback handling */
     }
   };
 
@@ -222,150 +267,169 @@ export default function Landing() {
     <div className="bg-slate-50 text-slate-900 antialiased font-['Inter',sans-serif]">
       <HeaderHero onBookClick={scrollToBooking} />
 
-      {/* ── Service Tabs (Flights / Hotels / Holiday Packages / Visa / Cruise) ─ */}
+      {/* ── Service Tabs ───────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-4 mb-3">
         <ServiceTabs activeService="hotels" />
       </div>
 
-      {/* ── Booking Bar (Hotel Booking) ────────────────────────────────── */}
-      <section ref={bookingSectionRef} className="max-w-7xl mx-auto px-4 relative z-20">
-        <form
-          onSubmit={handleHotelSearch}
-          className="bg-white rounded-2xl shadow-xl border border-[#c3c5d9]/40 p-6 md:p-8 max-w-4xl mx-auto"
-        >
-          {/* City / Property / Location */}
-          <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr_1fr] gap-6 items-end mb-6">
-            <div className="flex flex-col gap-1.5">
-              <label className="flex items-center gap-1.5 font-mono text-xs font-medium uppercase tracking-wide text-[#434656]">
-                <MapPin className="w-[15px] h-[15px] text-[#003ec7]" />
-                City, Property Name or Location
+      {/* ── Booking Section ────────────────────────────────────────────── */}
+      <section ref={bookingSectionRef} className="max-w-7xl mx-auto px-4 relative z-20 mb-8">
+        <div className="max-w-6xl mx-auto">
+          
+          {/* Top Utility Row */}
+          <div className="flex flex-wrap items-center justify-between text-xs text-gray-600 mb-3 px-2">
+            <div className="flex items-center space-x-4">
+              <label className="flex items-center space-x-1 font-semibold cursor-pointer text-blue-600">
+                <input type="radio" name="roomTypeOption" defaultChecked className="w-4 h-4 accent-blue-600" />
+                <span>Upto 4 Rooms</span>
               </label>
-              <input
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                required
-                placeholder="Where are you headed?"
-                className="text-lg font-bold text-[#191c1e] placeholder:text-[#c3c5d9] placeholder:font-normal outline-none border-b-2 border-transparent focus:border-[#003ec7] pb-1 transition-colors"
-              />
+              <label className="flex items-center space-x-1 cursor-pointer hover:text-blue-600">
+                <input type="radio" name="roomTypeOption" className="w-4 h-4 accent-blue-600" />
+                <span>Group Deals</span>
+                <span className="bg-purple-100 text-purple-700 text-[10px] font-bold px-1 rounded">new</span>
+              </label>
             </div>
-
-            {/* Check-in */}
-            <div className="relative flex flex-col gap-1.5 cursor-pointer" onClick={() => triggerDatePicker('hotel-checkin')}>
-              <label className="flex items-center gap-1.5 font-mono text-xs font-medium uppercase tracking-wide text-[#434656]">
-                <CalendarDays className="w-[15px] h-[15px] text-[#003ec7]" />
-                Check-In
-              </label>
-              <div>
-                <p className="text-lg font-bold text-[#191c1e] leading-tight">{formatDisplayDate(checkIn)}</p>
-                <p className="text-xs text-[#434656]">{dayName(checkIn)}</p>
-              </div>
-              <input
-                id="hotel-checkin"
-                type="date"
-                min={today}
-                value={checkIn}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setCheckIn(v);
-                  if (checkOut <= v) setCheckOut(addDays(v, 1));
-                }}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-              />
-            </div>
-
-            {/* Check-out */}
-            <div className="relative flex flex-col gap-1.5 cursor-pointer" onClick={() => triggerDatePicker('hotel-checkout')}>
-              <label className="flex items-center gap-1.5 font-mono text-xs font-medium uppercase tracking-wide text-[#434656]">
-                <CalendarDays className="w-[15px] h-[15px] text-[#003ec7]" />
-                Check-Out
-              </label>
-              <div>
-                <p className="text-lg font-bold text-[#191c1e] leading-tight">{formatDisplayDate(checkOut)}</p>
-                <p className="text-xs text-[#434656]">{dayName(checkOut)}</p>
-              </div>
-              <input
-                id="hotel-checkout"
-                type="date"
-                min={addDays(checkIn, 1)}
-                value={checkOut}
-                onChange={(e) => setCheckOut(e.target.value)}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-              />
+            <div className="hidden sm:block">
+              <span>Book Domestic and International Property Online. To list your property </span>
+              <a href="#" className="text-blue-600 font-medium hover:underline">Click Here</a>
             </div>
           </div>
 
-          {/* Rooms & Guests + Price bands */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div className="relative" ref={wrapperRef}>
-              <label className="flex items-center gap-1.5 font-mono text-xs font-medium uppercase tracking-wide text-[#434656] mb-1.5">
-                <Users className="w-[15px] h-[15px] text-[#003ec7]" />
-                Rooms &amp; Guests
-              </label>
-              <button
-                type="button"
+          {/* Main Booking Panel Box — bigger, more spacious, trending searches now live inside it */}
+          <form onSubmit={handleHotelSearch} className="relative bg-white border border-gray-200 rounded-2xl shadow-lg p-8 md:p-10">
+            <div className="grid grid-cols-1 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+              
+              {/* Box 1: City & Location input */}
+              <div className="p-2 md:p-5 text-left cursor-pointer hover:bg-gray-50 transition rounded-l-xl">
+                <p className="text-xs text-gray-500 font-medium">City, Property Name Or Location</p>
+                <input 
+                  type="text" 
+                  value={location} 
+                  onChange={(e) => setLocation(e.target.value)}
+                  required
+                  placeholder="Where are you headed?"
+                  className="w-full text-2xl font-bold text-gray-800 bg-transparent outline-none mt-2 placeholder:font-normal placeholder:text-gray-300"
+                />
+                <p className="text-xs text-gray-400 mt-1">India</p>
+              </div>
+
+              {/* Box 2: Check-In Date */}
+              <div 
+                className="p-2 md:p-5 text-left cursor-pointer hover:bg-gray-50 transition relative" 
+                onClick={() => triggerDatePicker('hotel-checkin-widget')}
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-500 font-medium">Check-In</p>
+                  <span className="text-blue-500 text-[10px]">▼</span>
+                </div>
+                <p className="text-2xl font-bold text-gray-800 mt-2">{formatDisplayDate(checkIn)}</p>
+                <p className="text-xs text-gray-400 mt-1">{dayName(checkIn)}</p>
+                <input
+                  id="hotel-checkin-widget"
+                  type="date"
+                  min={today}
+                  value={checkIn}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setCheckIn(v);
+                    if (checkOut <= v) setCheckOut(addDays(v, 1));
+                  }}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                />
+              </div>
+
+              {/* Box 3: Check-Out Date */}
+              <div 
+                className="p-2 md:p-5 text-left cursor-pointer hover:bg-gray-50 transition relative"
+                onClick={() => triggerDatePicker('hotel-checkout-widget')}
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-500 font-medium">Check-Out</p>
+                  <span className="text-blue-500 text-[10px]">▼</span>
+                </div>
+                <p className="text-2xl font-bold text-gray-800 mt-2">{formatDisplayDate(checkOut)}</p>
+                <p className="text-xs text-gray-400 mt-1">{dayName(checkOut)}</p>
+                <input
+                  id="hotel-checkout-widget"
+                  type="date"
+                  min={addDays(checkIn, 1)}
+                  value={checkOut}
+                  onChange={(e) => setCheckOut(e.target.value)}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                />
+              </div>
+
+              {/* Box 4: Rooms & Guests custom dropdown wrapper */}
+              <div 
+                ref={roomsWrapperRef}
+                className="p-4 md:p-5 text-left cursor-pointer hover:bg-gray-50 transition relative"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setShowRoomsPanel((v) => !v);
+                  setShowRoomsPanel(v => !v);
+                  setShowPricePanel(false);
                 }}
-                className="w-full text-left border border-[#c3c5d9]/70 rounded-lg px-3.5 py-2.5 text-sm font-semibold text-[#191c1e] hover:border-[#003ec7] transition-colors"
               >
-                {roomsSummary}
-              </button>
-              {showRoomsPanel && (
-                <RoomsGuestsPopover rooms={rooms} onChange={setRooms} onClose={() => setShowRoomsPanel(false)} />
-              )}
-            </div>
-
-            <div>
-              <label className="block font-mono text-xs font-medium uppercase tracking-wide text-[#434656] mb-1.5">
-                Price Per Night
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {PRICE_BANDS.map((band) => {
-                  const active = selectedPriceBands.includes(band.id);
-                  return (
-                    <button
-                      key={band.id}
-                      type="button"
-                      onClick={() => togglePriceBand(band.id)}
-                      className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${
-                        active
-                          ? 'border-[#003ec7] bg-[#003ec7]/10 text-[#003ec7]'
-                          : 'border-[#c3c5d9]/70 text-[#434656] hover:border-[#003ec7] hover:text-[#003ec7]'
-                      }`}
-                    >
-                      {band.label}
-                    </button>
-                  );
-                })}
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-500 font-medium">Rooms &amp; Guests</p>
+                  <span className="text-blue-500 text-[10px]">▼</span>
+                </div>
+                <p className="text-2xl font-bold text-gray-800 mt-2">
+                  {rooms.length} <span className="text-sm font-normal text-gray-500">Rooms</span> {totalAdults} <span className="text-sm font-normal text-gray-500">Adults</span>
+                </p>
+                {showRoomsPanel && (
+                  <RoomsGuestsPopover rooms={rooms} onChange={setRooms} onClose={() => setShowRoomsPanel(false)} />
+                )}
               </div>
-            </div>
-          </div>
 
-          {/* Trending searches */}
-          <div className="flex flex-wrap items-center gap-2 mb-7">
-            <span className="text-xs font-bold text-[#434656] mr-1">Trending Searches:</span>
-            {TRENDING.map((place) => (
-              <button
-                key={place}
-                type="button"
-                onClick={() => setLocation(place)}
-                className="text-xs font-medium text-[#434656] bg-[#eceef0] hover:bg-[#dfe2e5] rounded-full px-3 py-1.5 transition-colors"
+              {/* Box 5: Price Per Night selection */}
+              <div 
+                ref={priceWrapperRef}
+                className="p-4 md:p-5 text-left cursor-pointer hover:bg-gray-50 transition rounded-r-xl relative"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowPricePanel(v => !v);
+                  setShowRoomsPanel(false);
+                }}
               >
-                {place}
-              </button>
-            ))}
-          </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-500 font-medium">Price Per Night</p>
+                  <span className="text-blue-500 text-[10px]">▼</span>
+                </div>
+                <p className="text-base font-bold text-gray-700 mt-3 truncate max-w-[200px]">{priceSummaryText}</p>
+                {showPricePanel && (
+                  <PriceBandsPopover selected={selectedPriceBands} onToggle={togglePriceBand} onClose={() => setShowPricePanel(false)} />
+                )}
+              </div>
 
-          {/* Search button */}
-          <button
-            type="submit"
-            className="w-full md:w-auto md:mx-auto md:flex inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#0052ff] to-[#0ea5e9] text-white px-16 py-3.5 rounded-full text-base font-bold hover:opacity-90 transition-opacity shadow-lg"
-          >
-            <Search className="w-5 h-5" />
-            Search Hotels
-          </button>
-        </form>
+            </div>
+
+            {/* Trending Searches — now inside the box, below the fields */}
+            <div className="mt-5 pt-5 border-t border-gray-100 flex flex-wrap items-center gap-2.5 px-1">
+              <span className="font-semibold text-gray-400 text-sm">Trending Searches:</span>
+              {TRENDING.map((place, idx) => (
+                <button 
+                  key={idx} 
+                  type="button"
+                  onClick={() => setLocation(`${place.city}, ${place.country}`)}
+                  className="bg-gray-100 hover:bg-blue-50 hover:text-blue-600 text-gray-700 px-4 py-2 rounded-full transition duration-150 font-medium text-sm"
+                >
+                  {place.city}, {place.country}
+                </button>
+              ))}
+            </div>
+
+            {/* Floating Absolute Search Button centered at bottom */}
+            <div className="absolute left-1/2 -bottom-6 transform -translate-x-1/2 z-30">
+              <button 
+                type="submit"
+                className="bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold text-lg px-16 py-2.5 rounded-full shadow-lg hover:from-blue-600 hover:to-blue-700 tracking-wide uppercase transition-all duration-200"
+              >
+                Search
+              </button>
+            </div>
+          </form>
+
+        </div>
       </section>
 
       {/* ── Destinations ───────────────────────────────────────────────── */}
