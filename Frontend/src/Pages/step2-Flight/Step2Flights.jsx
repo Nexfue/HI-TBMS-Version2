@@ -1,649 +1,482 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import {
-  PlaneTakeoff,
-  PlaneLanding,
-  Plane,
-  Edit,
-  AlertCircle,
-  RefreshCw,
-  Info,
-  CheckCircle2,
-  Bell,
-  ArrowLeft,
-  ArrowRight,
-  RectangleHorizontal,
-  RectangleVertical,
-  Armchair,
-  Loader2,
-} from 'lucide-react';
-import { searchFlights } from '../../Service/apiService';
-import {
-  setDepartureFlight as setDepartureFlightAction,
-  setReturnFlight as setReturnFlightAction,
-  setMultiCityFlights,
-  setSelectedSeat,
-} from '../../Store/slices/travelSlice';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { MapPin, CalendarDays, Users, Minus, Plus, Search, X } from 'lucide-react';
+import { todayISO } from '../../utils/dateHelpers';
+import ServiceTabs from '../../Components/serviceTabs';
+import HeaderHero from '../../Components/HeaderHero';
+import Footer from '../../Components/Footer';
 
-const SORT_TABS = [
-  { value: 'price-asc', label: 'Cheapest' },
-  { value: 'duration', label: 'Fastest' },
-  { value: 'price-desc', label: 'Recommended' },
+// ── Small shared icon ────────────────────────────────────────────────────
+const PinIcon = ({ className }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 20 20">
+    <path
+      clipRule="evenodd"
+      d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+      fillRule="evenodd"
+    />
+  </svg>
+);
+
+// ── Hotel booking helpers/constants ─────────────────────────────────────────
+const PRICE_BANDS = [
+  { id: '0-1500', label: '₹0 – ₹1,500' },
+  { id: '1500-2500', label: '₹1,500 – ₹2,500' },
+  { id: '2500-4000', label: '₹2,500 – ₹4,000' },
+  { id: '4000-6000', label: '₹4,000 – ₹6,000' },
+  { id: '6000+', label: '₹6,000+' },
 ];
 
-const SEAT_OPTIONS = [
-  { value: 'window', label: 'Window', icon: RectangleHorizontal },
-  { value: 'middle', label: 'Middle', icon: RectangleVertical },
-  { value: 'aisle', label: 'Aisle', icon: Armchair },
-];
-
-const formatDate = (iso) =>
-  new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-
-const stopsLabel = (stops) => (stops === 0 ? 'Non-stop' : `${stops} stop${stops > 1 ? 's' : ''}`);
+const TRENDING = ['New York, United States', 'London, United Kingdom', 'Bangkok, Thailand', 'Goa, India'];
 
 const addDays = (isoDate, days) => {
-  const d = new Date(isoDate);
+  const d = isoDate ? new Date(isoDate) : new Date();
   d.setDate(d.getDate() + days);
-  return d.toISOString();
+  return d.toISOString().split('T')[0];
 };
 
-function sortAndFilter(list, sortBy, filterAirline) {
-  return list
-    .filter((f) => filterAirline === 'all' || f.airline === filterAirline)
-    .slice()
-    .sort((a, b) => {
-      if (sortBy === 'price-asc') return a.price - b.price;
-      if (sortBy === 'price-desc') return b.price - a.price;
-      return a.duration.localeCompare(b.duration);
-    });
-}
+const formatDisplayDate = (isoDate) => {
+  if (!isoDate) return '';
+  const d = new Date(isoDate);
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' });
+};
 
-// Reused for departure / return / multi-city leg cards — same markup, different data.
-function FlightCard({ flight, fromLabel, toLabel, selected, onSelect, icon: Icon = Plane }) {
+const dayName = (isoDate) => {
+  if (!isoDate) return '';
+  return new Date(isoDate).toLocaleDateString('en-IN', { weekday: 'long' });
+};
+
+// ── Rooms & Guests popover (used inside the hotel booking form) ────────────
+function RoomsGuestsPopover({ rooms, onChange, onClose }) {
+  const totalAdults = rooms.reduce((s, r) => s + r.adults, 0);
+  const totalChildren = rooms.reduce((s, r) => s + r.children, 0);
+
+  const updateRoom = (index, field, delta, min = 0, max = 6) => {
+    onChange(
+      rooms.map((r, i) => (i === index ? { ...r, [field]: Math.min(max, Math.max(min, r[field] + delta)) } : r))
+    );
+  };
+
+  const addRoom = () => {
+    if (rooms.length >= 4) return;
+    onChange([...rooms, { adults: 1, children: 0 }]);
+  };
+
+  const removeRoom = (index) => {
+    if (rooms.length <= 1) return;
+    onChange(rooms.filter((_, i) => i !== index));
+  };
+
   return (
     <div
-      onClick={() => onSelect(flight)}
-      className={`bg-white rounded-xl p-5 flex flex-wrap md:flex-nowrap items-center gap-4 md:gap-5 cursor-pointer relative overflow-hidden transition-all shadow-[0_2px_8px_rgba(0,0,0,0.04)] border-[1.5px] ${
-        selected
-          ? 'border-[#003ec7] bg-[#003ec7]/[0.03] shadow-[0_0_0_1px_#003ec7,0_4px_16px_rgba(0,62,199,0.12)]'
-          : 'border-[#c3c5d9]/35 hover:border-[#003ec7]/45 hover:shadow-[0_4px_16px_rgba(0,62,199,0.1)]'
-      }`}
+      onClick={(e) => e.stopPropagation()}
+      className="absolute top-full left-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-[#c3c5d9]/40 z-50 p-4"
     >
-      {/* Airline */}
-      <div className="flex items-center gap-3 w-full md:w-[200px] flex-shrink-0">
-        <div className="w-11 h-11 bg-[#eceef0] rounded-lg flex items-center justify-center flex-shrink-0">
-          <Icon className="w-[22px] h-[22px] text-[#003ec7]" />
-        </div>
-        <div>
-          <p className="font-bold text-[15px] text-[#191c1e] mb-0.5">{flight.airline}</p>
-          <p className="font-mono text-[11px] tracking-wide text-[#434656]">{flight.flightNo}</p>
-        </div>
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-sm font-bold text-[#191c1e]">
+          {rooms.length} Room{rooms.length !== 1 ? 's' : ''} &bull; {totalAdults} Adult{totalAdults !== 1 ? 's' : ''}
+          {totalChildren > 0 && `, ${totalChildren} Child${totalChildren !== 1 ? 'ren' : ''}`}
+        </span>
+        {rooms.length < 4 && (
+          <button
+            type="button"
+            onClick={addRoom}
+            className="text-xs font-bold text-[#003ec7] border border-[#003ec7] rounded px-2.5 py-1 hover:bg-[#003ec7]/5 transition-colors"
+          >
+            + Add Room
+          </button>
+        )}
       </div>
 
-      {/* Times */}
-      <div className="flex-1 w-full flex items-center gap-2">
-        <div className="text-left flex-shrink-0">
-          <p className="text-[22px] font-bold text-[#191c1e] leading-none mb-0.5">{flight.departure}</p>
-          <p className="text-xs text-[#434656]">{fromLabel}</p>
-        </div>
-        <div className="flex-1 flex flex-col items-center gap-1 px-2">
-          <p className="text-xs text-[#434656] whitespace-nowrap">
-            {flight.duration} &middot; {stopsLabel(flight.stops)}
-          </p>
-          <div className="relative w-full h-px bg-[#c3c5d9]/60 flex items-center justify-center">
-            {flight.stops > 0 && <div className="absolute w-2 h-2 bg-[#c3c5d9] rounded-full z-10" />}
-            <Plane className="w-[18px] h-[18px] text-[#003ec7] bg-white px-1.5 relative z-10" />
+      <div className="flex flex-col gap-3 max-h-72 overflow-y-auto">
+        {rooms.map((room, i) => (
+          <div key={i} className="border border-[#c3c5d9]/40 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-[#434656] uppercase tracking-wide">Room {i + 1}</span>
+              {rooms.length > 1 && (
+                <button type="button" onClick={() => removeRoom(i)} className="text-[#434656] hover:text-[#ba1a1a] transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-[#191c1e]">Adults</span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => updateRoom(i, 'adults', -1, 1)}
+                  className="w-7 h-7 rounded-full border border-[#c3c5d9] flex items-center justify-center text-[#434656] hover:border-[#003ec7] hover:text-[#003ec7]"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-sm font-bold w-4 text-center">{room.adults}</span>
+                <button
+                  type="button"
+                  onClick={() => updateRoom(i, 'adults', 1, 1)}
+                  className="w-7 h-7 rounded-full border border-[#c3c5d9] flex items-center justify-center text-[#434656] hover:border-[#003ec7] hover:text-[#003ec7]"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-[#191c1e]">Children</span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => updateRoom(i, 'children', -1, 0)}
+                  className="w-7 h-7 rounded-full border border-[#c3c5d9] flex items-center justify-center text-[#434656] hover:border-[#003ec7] hover:text-[#003ec7]"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-sm font-bold w-4 text-center">{room.children}</span>
+                <button
+                  type="button"
+                  onClick={() => updateRoom(i, 'children', 1, 0)}
+                  className="w-7 h-7 rounded-full border border-[#c3c5d9] flex items-center justify-center text-[#434656] hover:border-[#003ec7] hover:text-[#003ec7]"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="text-right flex-shrink-0">
-          <p className="text-[22px] font-bold text-[#191c1e] leading-none mb-0.5">{flight.arrival}</p>
-          <p className="text-xs text-[#434656]">{toLabel}</p>
-        </div>
+        ))}
       </div>
 
-      {/* Price */}
-      <div className="flex md:flex-col items-center md:items-end justify-between md:justify-start gap-2.5 md:gap-2.5 pl-0 md:pl-5 pt-3 md:pt-0 border-t md:border-t-0 md:border-l border-[#c3c5d9]/25 flex-shrink-0 w-full md:w-auto md:min-w-[130px]">
-        <div className="text-right">
-          <p className="text-[22px] font-bold text-[#003ec7] mb-0.5">₹{new Intl.NumberFormat('en-IN').format(flight.price)}</p>
-          <p className="text-[11px] text-[#434656]">per person</p>
-        </div>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelect(flight);
-          }}
-          className={`px-[22px] py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-opacity hover:opacity-90 ${
-            selected ? 'bg-[#10b981] text-white' : 'bg-[#003ec7] text-white'
-          }`}
-        >
-          {selected ? 'Selected' : 'Select'}
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={onClose}
+        className="w-full mt-3 bg-[#0052ff] text-white rounded-lg py-2 text-sm font-bold hover:opacity-90 transition-opacity"
+      >
+        Apply
+      </button>
     </div>
   );
 }
 
-export default function Step2Flights() {
+export default function Landing() {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
-
+  const bookingSectionRef = useRef(null);
   const travelDetails = useSelector((s) => s.travel.travelDetails);
-  const savedDeparture = useSelector((s) => s.travel.departureFlight);
-  const savedReturn = useSelector((s) => s.travel.returnFlight);
-  const savedSeat = useSelector((s) => s.travel.selectedSeat);
-  const savedMultiCityFlights = useSelector((s) => s.travel.multiCityFlights);
+  const today = todayISO();
 
-  const isRoundTrip = travelDetails?.tripType === 'round-trip';
-  const isMultiCity = travelDetails?.tripType === 'multi-city';
+  // ── Hotel booking form state ─────────────────────────────────────────
+  const [location, setLocation] = useState(travelDetails?.to || '');
+  const [checkIn, setCheckIn] = useState(travelDetails?.departureDate?.split('T')[0] || today);
+  const [checkOut, setCheckOut] = useState(travelDetails?.returnDate?.split('T')[0] || addDays(today, 1));
+  const [rooms, setRooms] = useState([{ adults: 2, children: 0 }]);
+  const [selectedPriceBands, setSelectedPriceBands] = useState([]);
+  const [showRoomsPanel, setShowRoomsPanel] = useState(false);
 
-  // ── One-way / round-trip local state ──────────────────────────────────
-  const [allFlights, setAllFlights] = useState([]);
-  const [allReturnFlights, setAllReturnFlights] = useState([]);
-  const [departureFlight, setDepartureFlight] = useState(null);
-  const [returnFlight, setReturnFlight] = useState(null);
-  const [showReturn, setShowReturn] = useState(false);
+  const wrapperRef = useRef(null);
 
-  // ── Multi-city local state ────────────────────────────────────────────
-  const [segmentFlights, setSegmentFlights] = useState([]);
-  const [selectedFlights, setSelectedFlights] = useState([]);
-  const [activeSegment, setActiveSegment] = useState(0);
-
-  // ── Shared ─────────────────────────────────────────────────────────────
-  const [loading, setLoading] = useState(false);
-  const [apiError, setApiError] = useState(false);
-  const [sortBy, setSortBy] = useState('price-asc');
-  const [filterAirline, setFilterAirline] = useState('all');
-  const [selectedSeat, setSelectedSeatLocal] = useState('window');
-
-  const fetchOneWayOrRoundTrip = useCallback(async () => {
-    if (!travelDetails) return;
-    const depDate = travelDetails.departureDate;
-    const retDate = travelDetails.returnDate || addDays(travelDetails.departureDate, 7);
-    setLoading(true);
-    setApiError(false);
-    try {
-      const result = await searchFlights(travelDetails.from, travelDetails.to, depDate, retDate, travelDetails.travelers);
-      setAllFlights(result.departures ?? []);
-      setAllReturnFlights(result.returns ?? []);
-      if (!result.departures?.length && !result.returns?.length) setApiError(true);
-    } catch {
-      setApiError(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [travelDetails]);
-
-  const loadMultiCity = useCallback(async () => {
-    if (!travelDetails?.multiCitySegments) return;
-    const segs = travelDetails.multiCitySegments;
-
-    setSelectedFlights(
-      savedMultiCityFlights.length === segs.length ? [...savedMultiCityFlights] : segs.map(() => null)
-    );
-    setSegmentFlights(segs.map(() => []));
-    setLoading(true);
-    setApiError(false);
-
-    try {
-      const results = await Promise.all(
-        segs.map((s) => searchFlights(s.from, s.to, s.departureDate, addDays(s.departureDate, 1), travelDetails.travelers))
-      );
-      setSegmentFlights(results.map((r) => r.departures ?? []));
-      if (results.every((r) => !r.departures?.length)) setApiError(true);
-    } catch {
-      setApiError(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [travelDetails, savedMultiCityFlights]);
-
-  // ngOnInit equivalent
   useEffect(() => {
-    if (!travelDetails) {
-      navigate('/step1');
-      return;
-    }
-
-    if (isMultiCity) {
-      loadMultiCity();
-      return;
-    }
-
-    // Restore saved selections when navigating back
-    if (savedDeparture) {
-      setDepartureFlight(savedDeparture);
-      setReturnFlight(savedReturn);
-      setSelectedSeatLocal(savedSeat || 'window');
-      if (isRoundTrip && savedDeparture) setShowReturn(true);
-    }
-
-    fetchOneWayOrRoundTrip();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const closeOnOutsideClick = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) setShowRoomsPanel(false);
+    };
+    document.addEventListener('click', closeOnOutsideClick);
+    return () => document.removeEventListener('click', closeOnOutsideClick);
   }, []);
 
-  const airlines = useMemo(() => {
-    const pool = isMultiCity ? segmentFlights[activeSegment] ?? [] : [...allFlights, ...allReturnFlights];
-    return ['all', ...new Set(pool.map((f) => f.airline))];
-  }, [isMultiCity, segmentFlights, activeSegment, allFlights, allReturnFlights]);
+  const totalAdults = rooms.reduce((s, r) => s + r.adults, 0);
+  const totalChildren = rooms.reduce((s, r) => s + r.children, 0);
 
-  const filteredFlights = useMemo(() => sortAndFilter(allFlights, sortBy, filterAirline), [allFlights, sortBy, filterAirline]);
-  const filteredReturnFlights = useMemo(
-    () => sortAndFilter(allReturnFlights, sortBy, filterAirline),
-    [allReturnFlights, sortBy, filterAirline]
-  );
-  const filteredSegmentFlights = useMemo(
-    () => sortAndFilter(segmentFlights[activeSegment] ?? [], sortBy, filterAirline),
-    [segmentFlights, activeSegment, sortBy, filterAirline]
-  );
+  const roomsSummary = useMemo(() => {
+    const parts = [`${rooms.length} Room${rooms.length !== 1 ? 's' : ''}`, `${totalAdults} Adult${totalAdults !== 1 ? 's' : ''}`];
+    if (totalChildren > 0) parts.push(`${totalChildren} Child${totalChildren !== 1 ? 'ren' : ''}`);
+    return parts.join(', ');
+  }, [rooms.length, totalAdults, totalChildren]);
 
-  const canContinue = isMultiCity
-    ? selectedFlights.length > 0 && selectedFlights.every((f) => f !== null)
-    : !!departureFlight && !(isRoundTrip && !returnFlight);
-
-  const totalPrice = isMultiCity
-    ? selectedFlights.reduce((s, f) => s + (f?.price ?? 0), 0)
-    : (departureFlight?.price ?? 0) + (returnFlight?.price ?? 0);
-
-  const anySegmentSelected = selectedFlights.some((f) => f !== null);
-  const selectedSegmentCount = selectedFlights.filter((f) => f !== null).length;
-
-  // ── Selection handlers ────────────────────────────────────────────────
-  const selectDeparture = (flight) => {
-    setDepartureFlight(flight);
-    if (isRoundTrip) setShowReturn(true);
-    else setReturnFlight(null);
+  const togglePriceBand = (id) => {
+    setSelectedPriceBands((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
   };
 
-  const selectReturnFlight = (flight) => setReturnFlight(flight);
-
-  const selectSegmentFlight = (flight) => {
-    setSelectedFlights((prev) => {
-      const next = [...prev];
-      next[activeSegment] = flight;
-      const nextUnselected = next.findIndex((f, i) => i > activeSegment && !f);
-      if (nextUnselected !== -1) setActiveSegment(nextUnselected);
-      return next;
-    });
-  };
-
-  const segmentLabel = (i) => {
-    const segs = travelDetails?.multiCitySegments;
-    if (!segs?.[i]) return `Leg ${i + 1}`;
-    return `${segs[i].from} → ${segs[i].to}`;
-  };
-
-  const retrySearch = () => {
-    if (!travelDetails) {
-      navigate('/step1');
-      return;
+  const triggerDatePicker = (id) => {
+    const el = document.getElementById(id);
+    try {
+      el?.showPicker?.();
+    } catch {
+      /* Safari fallback: input still opens on click */
     }
-    if (isMultiCity) loadMultiCity();
-    else fetchOneWayOrRoundTrip();
   };
 
-  const handleContinue = () => {
-    if (!canContinue) return;
-
-    if (isMultiCity) {
-      dispatch(setMultiCityFlights(selectedFlights));
-      dispatch(setDepartureFlightAction(selectedFlights[0]));
-      dispatch(setSelectedSeat(selectedSeat));
-      navigate('/step3');
-      return;
-    }
-
-    dispatch(setDepartureFlightAction(departureFlight));
-    dispatch(setReturnFlightAction(isRoundTrip ? returnFlight : null));
-    dispatch(setSelectedSeat(selectedSeat));
-    navigate('/step3');
+  const handleHotelSearch = (e) => {
+    e.preventDefault();
+    const criteria = {
+      location,
+      checkIn,
+      checkOut,
+      rooms,
+      priceBands: selectedPriceBands,
+    };
+    navigate('/step3/results', { state: criteria });
   };
 
-  if (!travelDetails) return null; // redirecting to /step1
+  const scrollToBooking = () => {
+    bookingSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb] text-[#191c1e] font-['Hanken_Grotesk','Inter',sans-serif] pb-20">
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="px-6 py-5 flex items-center justify-between border-b border-slate-200 bg-white font-['Inter',sans-serif]">
-        <div className="text-2xl font-bold tracking-tighter uppercase">Holiday Infinite</div>
-        <nav className="hidden md:flex items-center space-x-8 text-sm font-medium uppercase tracking-wide">
-          <Link className="hover:text-blue-600 transition-colors" to="/">Package</Link>
-          <Link className="hover:text-blue-600 transition-colors" to="/">Contact</Link>
-          <Link className="hover:text-blue-600 transition-colors" to="/">Home</Link>
-          <Link className="hover:text-blue-600 transition-colors" to="/">Tour</Link>
-          <Link className="hover:text-blue-600 transition-colors" to="/">About</Link>
-        </nav>
-        <Link to="/" className="bg-zinc-900 text-white px-8 py-3 rounded-full text-sm font-bold uppercase hover:bg-zinc-800 transition-all">
-          Book Trip
-        </Link>
-      </header>
+    <div className="bg-slate-50 text-slate-900 antialiased font-['Inter',sans-serif]">
+      <HeaderHero onBookClick={scrollToBooking} />
 
-      <main className="max-w-[1280px] mx-auto px-6 md:px-10 pt-10 pb-8">
-        {/* ── Search Summary Banner ────────────────────────────────────── */}
-        <section className="bg-[#0052ff] rounded-xl px-5 md:px-7 py-5 mb-8 flex justify-between items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-4">
-            <div className="bg-white/15 rounded-lg w-[52px] h-[52px] flex items-center justify-center flex-shrink-0">
-              <PlaneTakeoff className="w-7 h-7 text-white" />
+      {/* ── Service Tabs (Flights / Hotels / Holiday Packages / Visa / Cruise) ─ */}
+      <div className="max-w-7xl mx-auto px-4 mb-3">
+        <ServiceTabs activeService="hotels" />
+      </div>
+
+      {/* ── Booking Bar (Hotel Booking) ────────────────────────────────── */}
+      <section ref={bookingSectionRef} className="max-w-7xl mx-auto px-4 relative z-20">
+        <form
+          onSubmit={handleHotelSearch}
+          className="bg-white rounded-2xl shadow-xl border border-[#c3c5d9]/40 p-6 md:p-8 max-w-4xl mx-auto"
+        >
+          {/* City / Property / Location */}
+          <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr_1fr] gap-6 items-end mb-6">
+            <div className="flex flex-col gap-1.5">
+              <label className="flex items-center gap-1.5 font-mono text-xs font-medium uppercase tracking-wide text-[#434656]">
+                <MapPin className="w-[15px] h-[15px] text-[#003ec7]" />
+                City, Property Name or Location
+              </label>
+              <input
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                required
+                placeholder="Where are you headed?"
+                className="text-lg font-bold text-[#191c1e] placeholder:text-[#c3c5d9] placeholder:font-normal outline-none border-b-2 border-transparent focus:border-[#003ec7] pb-1 transition-colors"
+              />
             </div>
-            <div>
-              <h1 className="text-2xl font-semibold text-white mb-1">
-                {isMultiCity ? 'Multi-City Trip' : `${travelDetails.from} → ${travelDetails.to}`}
-              </h1>
-              <p className="text-sm text-white/80">
-                {isMultiCity
-                  ? `${travelDetails.multiCitySegments?.length ?? 0} Legs \u2022 `
-                  : `${isRoundTrip ? 'Round Trip' : 'One Way'} \u2022 `}
-                {travelDetails.travelers} Adult{travelDetails.travelers > 1 ? 's' : ''} &bull;{' '}
-                {travelDetails.travelClass?.charAt(0).toUpperCase() + travelDetails.travelClass?.slice(1)} &bull;{' '}
-                {formatDate(travelDetails.departureDate)}
-              </p>
-              {isMultiCity && travelDetails.multiCitySegments && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {travelDetails.multiCitySegments.map((seg, i) => (
-                    <span
-                      key={i}
-                      className="inline-flex items-center gap-1 bg-white/[0.18] text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-full border border-white/30"
-                    >
-                      <PlaneTakeoff className="w-[13px] h-[13px]" />
-                      {seg.from} → {seg.to}
-                    </span>
-                  ))}
-                </div>
+
+            {/* Check-in */}
+            <div className="relative flex flex-col gap-1.5 cursor-pointer" onClick={() => triggerDatePicker('hotel-checkin')}>
+              <label className="flex items-center gap-1.5 font-mono text-xs font-medium uppercase tracking-wide text-[#434656]">
+                <CalendarDays className="w-[15px] h-[15px] text-[#003ec7]" />
+                Check-In
+              </label>
+              <div>
+                <p className="text-lg font-bold text-[#191c1e] leading-tight">{formatDisplayDate(checkIn)}</p>
+                <p className="text-xs text-[#434656]">{dayName(checkIn)}</p>
+              </div>
+              <input
+                id="hotel-checkin"
+                type="date"
+                min={today}
+                value={checkIn}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setCheckIn(v);
+                  if (checkOut <= v) setCheckOut(addDays(v, 1));
+                }}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+              />
+            </div>
+
+            {/* Check-out */}
+            <div className="relative flex flex-col gap-1.5 cursor-pointer" onClick={() => triggerDatePicker('hotel-checkout')}>
+              <label className="flex items-center gap-1.5 font-mono text-xs font-medium uppercase tracking-wide text-[#434656]">
+                <CalendarDays className="w-[15px] h-[15px] text-[#003ec7]" />
+                Check-Out
+              </label>
+              <div>
+                <p className="text-lg font-bold text-[#191c1e] leading-tight">{formatDisplayDate(checkOut)}</p>
+                <p className="text-xs text-[#434656]">{dayName(checkOut)}</p>
+              </div>
+              <input
+                id="hotel-checkout"
+                type="date"
+                min={addDays(checkIn, 1)}
+                value={checkOut}
+                onChange={(e) => setCheckOut(e.target.value)}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+              />
+            </div>
+          </div>
+
+          {/* Rooms & Guests + Price bands */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="relative" ref={wrapperRef}>
+              <label className="flex items-center gap-1.5 font-mono text-xs font-medium uppercase tracking-wide text-[#434656] mb-1.5">
+                <Users className="w-[15px] h-[15px] text-[#003ec7]" />
+                Rooms &amp; Guests
+              </label>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowRoomsPanel((v) => !v);
+                }}
+                className="w-full text-left border border-[#c3c5d9]/70 rounded-lg px-3.5 py-2.5 text-sm font-semibold text-[#191c1e] hover:border-[#003ec7] transition-colors"
+              >
+                {roomsSummary}
+              </button>
+              {showRoomsPanel && (
+                <RoomsGuestsPopover rooms={rooms} onChange={setRooms} onClose={() => setShowRoomsPanel(false)} />
               )}
             </div>
-          </div>
-          <Link
-            to="/step1"
-            className="inline-flex items-center gap-1.5 border-[1.5px] border-white/50 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-white/10 transition-colors whitespace-nowrap"
-          >
-            <Edit className="w-[18px] h-[18px]" /> Modify Search
-          </Link>
-        </section>
 
-        {/* ── Status rows ────────────────────────────────────────────── */}
-        {loading && (
-          <div className="flex items-center gap-2.5 py-2.5 pb-4 text-sm text-[#434656]">
-            <Loader2 className="w-5 h-5 animate-spin text-[#003ec7]" />
-            <span>Loading available flights&hellip;</span>
-          </div>
-        )}
-        {!loading && apiError && (
-          <div className="flex items-center gap-2.5 py-2.5 pb-4 text-sm text-[#b45309]">
-            <AlertCircle className="w-[18px] h-[18px]" />
-            <span>No flights found for this route. Try major airports (e.g. Delhi, Mumbai, London).</span>
-            <button
-              onClick={retrySearch}
-              className="inline-flex items-center gap-1 border border-current px-3 py-1 rounded-md text-[13px] font-semibold hover:opacity-75 transition-opacity"
-            >
-              <RefreshCw className="w-4 h-4" /> Retry
-            </button>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 items-start">
-          {/* ── Sidebar ──────────────────────────────────────────────── */}
-          <aside className="flex flex-col gap-4 lg:sticky lg:top-[88px]">
-            <div className="bg-white border border-[#c3c5d9]/40 rounded-xl p-5 shadow-sm">
-              <h3 className="font-mono text-[11px] font-medium tracking-widest uppercase text-[#434656] mb-2.5">Sort By</h3>
-              <div className="flex flex-col gap-1.5">
-                {[
-                  { value: 'price-asc', label: 'Cheapest First' },
-                  { value: 'price-desc', label: 'Price: High → Low' },
-                  { value: 'duration', label: 'Shortest Duration' },
-                ].map((opt) => (
-                  <label
-                    key={opt.value}
-                    className={`flex items-center gap-2 text-sm px-2 py-1.5 rounded-md cursor-pointer select-none transition-colors ${
-                      sortBy === opt.value ? 'bg-[#003ec7]/[0.07] text-[#003ec7] font-semibold' : 'hover:bg-[#eceef0]'
-                    }`}
-                  >
-                    <input type="radio" name="sort" value={opt.value} checked={sortBy === opt.value} onChange={() => setSortBy(opt.value)} className="hidden" />
-                    <span
-                      className={`w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 transition-colors ${
-                        sortBy === opt.value ? 'bg-[#003ec7] border-[#003ec7]' : 'border-[#c3c5d9]'
-                      }`}
-                    />
-                    {opt.label}
-                  </label>
-                ))}
-              </div>
-
-              <div className="h-px bg-[#c3c5d9]/30 my-4" />
-
-              <h3 className="font-mono text-[11px] font-medium tracking-widest uppercase text-[#434656] mb-2.5">Airline</h3>
-              <div className="flex flex-col gap-1.5">
-                {airlines.map((a) => (
-                  <label
-                    key={a}
-                    className={`flex items-center gap-2 text-sm px-2 py-1.5 rounded-md cursor-pointer select-none transition-colors ${
-                      filterAirline === a ? 'bg-[#003ec7]/[0.07] text-[#003ec7] font-semibold' : 'hover:bg-[#eceef0]'
-                    }`}
-                  >
-                    <input type="radio" name="airline" value={a} checked={filterAirline === a} onChange={() => setFilterAirline(a)} className="hidden" />
-                    <span
-                      className={`w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 transition-colors ${
-                        filterAirline === a ? 'bg-[#003ec7] border-[#003ec7]' : 'border-[#c3c5d9]'
-                      }`}
-                    />
-                    {a === 'all' ? 'All Airlines' : a}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-[#0ea5e9]/[0.08] border border-[#0ea5e9]/25 rounded-xl px-5 py-4">
-              <p className="text-sm text-[#191c1e] mb-2.5">Get fare alerts for this route</p>
-              <button className="w-full flex items-center justify-center gap-1.5 bg-[#0ea5e9] text-white rounded-lg py-2 text-sm font-bold hover:opacity-90 transition-opacity">
-                <Bell className="w-[18px] h-[18px]" /> Track Prices
-              </button>
-            </div>
-          </aside>
-
-          {/* ── Results column ─────────────────────────────────────────── */}
-          <div className="flex flex-col gap-3">
-            {/* Sort top bar */}
-            <div className="bg-white border border-[#c3c5d9]/30 rounded-[10px] px-4 py-3 flex items-center justify-between gap-3">
-              <div className="flex gap-5">
-                {SORT_TABS.map((tab) => (
-                  <button
-                    key={tab.value}
-                    onClick={() => setSortBy(tab.value)}
-                    className={`bg-transparent border-b-2 pb-0.5 text-sm font-medium transition-colors ${
-                      sortBy === tab.value ? 'text-[#003ec7] font-bold border-[#003ec7]' : 'text-[#434656] border-transparent hover:text-[#191c1e]'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-              <span className="text-[13px] text-[#434656] whitespace-nowrap">
-                {isMultiCity
-                  ? `${filteredSegmentFlights.length} result${filteredSegmentFlights.length !== 1 ? 's' : ''} found`
-                  : `${filteredFlights.length} result${filteredFlights.length !== 1 ? 's' : ''} found`}
-              </span>
-            </div>
-
-            {/* ══════════════ MULTI-CITY ══════════════ */}
-            {isMultiCity && (
-              <>
-                <div className="flex gap-2.5 flex-wrap mb-2">
-                  {travelDetails.multiCitySegments.map((seg, i) => {
-                    const isActive = activeSegment === i;
-                    const isDone = selectedFlights[i] !== null && selectedFlights[i] !== undefined;
-                    return (
-                      <button
-                        key={i}
-                        onClick={() => setActiveSegment(i)}
-                        className={`flex flex-col items-start gap-0.5 px-4 py-2.5 rounded-[10px] border-2 min-w-[140px] relative transition-colors ${
-                          isActive
-                            ? 'border-[#003ec7] bg-[#003ec7]/[0.06]'
-                            : isDone
-                            ? 'border-[#10b981] bg-[#10b981]/[0.06]'
-                            : 'border-[#c3c5d9] bg-white'
-                        }`}
-                      >
-                        <span className={`text-[10px] font-bold uppercase tracking-wide ${isActive ? 'text-[#003ec7]' : 'text-[#434656]'}`}>
-                          Leg {i + 1}
-                        </span>
-                        <span className={`text-[13px] font-bold ${isDone && !isActive ? 'text-[#0d9668]' : 'text-[#191c1e]'}`}>
-                          {seg.from} → {seg.to}
-                        </span>
-                        {isDone && <CheckCircle2 className="absolute top-2 right-2 w-4 h-4 text-[#10b981]" />}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="flex items-center gap-2 font-bold text-base">
-                  <PlaneTakeoff className="w-5 h-5 text-[#003ec7]" />
-                  Leg {activeSegment + 1} — {segmentLabel(activeSegment)}
-                  <span className="font-mono text-[11px] font-medium bg-[#003ec7]/[0.08] text-[#003ec7] border border-[#003ec7]/20 rounded-full px-2.5 py-0.5">
-                    {formatDate(travelDetails.multiCitySegments[activeSegment]?.departureDate ?? '')}
-                  </span>
-                </div>
-
-                {!loading && !apiError && filteredSegmentFlights.length === 0 && (
-                  <div className="flex items-center gap-2.5 py-2.5 text-sm text-[#434656]">
-                    <Info className="w-[18px] h-[18px]" />
-                    <span>No flights found for this leg. Try modifying your search.</span>
-                  </div>
-                )}
-
-                {filteredSegmentFlights.map((flight) => (
-                  <FlightCard
-                    key={flight.id}
-                    flight={flight}
-                    fromLabel={travelDetails.multiCitySegments[activeSegment]?.from}
-                    toLabel={travelDetails.multiCitySegments[activeSegment]?.to}
-                    selected={selectedFlights[activeSegment]?.id === flight.id}
-                    onSelect={selectSegmentFlight}
-                  />
-                ))}
-              </>
-            )}
-
-            {/* ══════════════ ONE-WAY / ROUND-TRIP ══════════════ */}
-            {!isMultiCity && (
-              <>
-                <div className="flex items-center gap-2 font-bold text-base">
-                  <PlaneTakeoff className="w-5 h-5 text-[#003ec7]" />
-                  Departure Flights
-                  {travelDetails && (
-                    <span className="font-mono text-[11px] font-medium bg-[#003ec7]/[0.08] text-[#003ec7] border border-[#003ec7]/20 rounded-full px-2.5 py-0.5">
-                      {travelDetails.from} → {travelDetails.to}
-                    </span>
-                  )}
-                </div>
-
-                {filteredFlights.map((flight) => (
-                  <FlightCard
-                    key={flight.id}
-                    flight={flight}
-                    fromLabel={travelDetails.from}
-                    toLabel={travelDetails.to}
-                    selected={departureFlight?.id === flight.id}
-                    onSelect={selectDeparture}
-                  />
-                ))}
-
-                {isRoundTrip && showReturn && (
-                  <>
-                    <div className="flex items-center gap-2 font-bold text-base mt-8">
-                      <PlaneLanding className="w-5 h-5 text-[#003ec7]" />
-                      Return Flights
-                      <span className="font-mono text-[11px] font-medium bg-[#003ec7]/[0.08] text-[#003ec7] border border-[#003ec7]/20 rounded-full px-2.5 py-0.5">
-                        {travelDetails.to} → {travelDetails.from}
-                      </span>
-                    </div>
-
-                    {filteredReturnFlights.map((flight) => (
-                      <FlightCard
-                        key={flight.id}
-                        flight={flight}
-                        fromLabel={travelDetails.to}
-                        toLabel={travelDetails.from}
-                        selected={returnFlight?.id === flight.id}
-                        onSelect={selectReturnFlight}
-                        icon={PlaneLanding}
-                      />
-                    ))}
-                  </>
-                )}
-              </>
-            )}
-
-            {/* ── Seat preference ──────────────────────────────────────── */}
-            {(departureFlight || (isMultiCity && selectedFlights[0])) && (
-              <div className="bg-white border border-[#c3c5d9]/35 rounded-xl px-6 py-5 shadow-sm mt-2">
-                <h3 className="flex items-center gap-2 text-base font-bold mb-4">
-                  <Armchair className="w-5 h-5 text-[#003ec7]" /> Seat Preference
-                </h3>
-                <div className="flex gap-4 flex-wrap">
-                  {SEAT_OPTIONS.map(({ value, label, icon: SeatIcon }) => (
-                    <label
-                      key={value}
-                      className={`flex flex-col items-center gap-2 px-7 py-4 rounded-[10px] border-[1.5px] cursor-pointer transition-all bg-[#eceef0] ${
-                        selectedSeat === value ? 'border-[#003ec7] bg-[#003ec7]/[0.06] shadow-[0_0_0_1px_#003ec7]' : 'border-[#c3c5d9]/50 hover:border-[#003ec7] hover:bg-[#003ec7]/[0.04]'
+            <div>
+              <label className="block font-mono text-xs font-medium uppercase tracking-wide text-[#434656] mb-1.5">
+                Price Per Night
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {PRICE_BANDS.map((band) => {
+                  const active = selectedPriceBands.includes(band.id);
+                  return (
+                    <button
+                      key={band.id}
+                      type="button"
+                      onClick={() => togglePriceBand(band.id)}
+                      className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${
+                        active
+                          ? 'border-[#003ec7] bg-[#003ec7]/10 text-[#003ec7]'
+                          : 'border-[#c3c5d9]/70 text-[#434656] hover:border-[#003ec7] hover:text-[#003ec7]'
                       }`}
                     >
-                      <input type="radio" name="seat" value={value} checked={selectedSeat === value} onChange={() => setSelectedSeatLocal(value)} className="hidden" />
-                      <SeatIcon className="w-7 h-7 text-[#003ec7]" />
-                      <span className="text-[13px] font-semibold text-[#191c1e]">{label}</span>
-                    </label>
-                  ))}
-                </div>
+                      {band.label}
+                    </button>
+                  );
+                })}
               </div>
-            )}
+            </div>
+          </div>
+
+          {/* Trending searches */}
+          <div className="flex flex-wrap items-center gap-2 mb-7">
+            <span className="text-xs font-bold text-[#434656] mr-1">Trending Searches:</span>
+            {TRENDING.map((place) => (
+              <button
+                key={place}
+                type="button"
+                onClick={() => setLocation(place)}
+                className="text-xs font-medium text-[#434656] bg-[#eceef0] hover:bg-[#dfe2e5] rounded-full px-3 py-1.5 transition-colors"
+              >
+                {place}
+              </button>
+            ))}
+          </div>
+
+          {/* Search button */}
+          <button
+            type="submit"
+            className="w-full md:w-auto md:mx-auto md:flex inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#0052ff] to-[#0ea5e9] text-white px-16 py-3.5 rounded-full text-base font-bold hover:opacity-90 transition-opacity shadow-lg"
+          >
+            <Search className="w-5 h-5" />
+            Search Hotels
+          </button>
+        </form>
+      </section>
+
+      {/* ── Destinations ───────────────────────────────────────────────── */}
+      <section className="max-w-7xl mx-auto px-4 py-24">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {[
+            { name: 'Olhuveli Beach Resort', place: 'Male, Maldives', rating: '4.1', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBJlgntdG-ASh6THKUMCmtFiHNJZP7L74lwCHr7q704W0wq8F6XI1CCGz0r8sfRhDrJAU-SsdxBUWvyNemGUz9GEVp17YYsBl2DfqXDMbBZttikg017QAQCnIJ5T9bNOyz3SVqamPczos4ImLGq-hh5_Zpkllly4AtUsey2oygGN1lZhxYcRv_spoyIofO5siuvz2kIbbRv6bIgSkRTsZWXc_UluPzTah4VCsXLhow9ODJzbRvLvo0D4TEUtPUSeEQkP1NXGPQ4Bg' },
+            { name: 'Sigiriya', place: 'Dambulla, Sri Lanka', rating: '4.9', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBFUHUUjo2KiINmORPWasr-0brUstXSD1W-nYJxkmFu7tdFoxfql5PyECMzKAIk4BjntwERBJSBdAj6HvD8YvZsVwWd4ZBIn6qBnYTgBvPBO-Y_UhFqIjkhWmWAdf_2N2_obfXO1pu2HvqoX6rafN3DMslpLf09Vaf_ofKHKzFf0RYIgqVmoXA67MwPGfJ7e7m5T-2uEKlZ68bBCEZIdXiDG1SBBmFhgRJhIyEkpkcoP4J-I4pNKiwkMp5BQFXDbwXGpzM61mYVsQ' },
+            { name: 'Grand Canal', place: 'Venice, Italy', rating: '4.4', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDbGMnYDb4G-n9-dJVAlj0Mayb4i2FwROPGCJrnJeIQ9SskicFcL0KtBjMIfKPJeu8zNYECbOB7FQrRgNkCaA_w43eqg3Zde0IYLT_LPFEE3Pr2zv856BM26bsXgT6fgZzh_QSbZ31jCk1gFwPARyGuNxtuRjMONa3t5GymS0bc6MtAIdX51ntovrQtLJe7_uNS0V7iGIZU2-PpJyArIsNzoy1eZ29vGfUJ5iKE6L1YZJJn-EV9xgPgkk-C4UgUb0ds_AbbiXkq1A' },
+          ].map((dest) => (
+            <div key={dest.name} className="group cursor-pointer">
+              <div className="rounded-3xl overflow-hidden h-72 mb-4 relative shadow-lg">
+                <img alt={dest.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" src={dest.img} />
+              </div>
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-xl font-bold">{dest.name}</h3>
+                  <p className="text-slate-400 text-sm flex items-center mt-1">
+                    <PinIcon className="w-4 h-4 mr-1 text-blue-500" />
+                    {dest.place}
+                  </p>
+                </div>
+                <span className="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full">&#9733; {dest.rating}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Journey Simple ─────────────────────────────────────────────── */}
+      <section className="max-w-7xl mx-auto px-4 py-24 text-center">
+        <h2 className="text-4xl font-extrabold mb-4">Journey The Skies Made Simple</h2>
+        <p className="text-slate-500 max-w-2xl mx-auto mb-16">
+          Seamless Flight Booking And Travel Planning At Your Fingertips&#8212;Effortless, Affordable, And Stress-Free Journeys Await You!
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="bg-white rounded-[2rem] p-10 flex flex-col items-center text-center shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+            <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-8">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+                <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+              </svg>
+            </div>
+            <h4 className="text-xl font-bold mb-4">Find Your<br />Destination</h4>
+          </div>
+
+          <div className="bg-blue-600 rounded-[2rem] p-1 text-white relative overflow-hidden group">
+            <div className="p-10 flex flex-col h-full text-left">
+              <div className="mb-8 w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 012-2h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+                </svg>
+              </div>
+              <h4 className="text-2xl font-bold mb-4">Book A Ticket</h4>
+              <p className="text-blue-100 text-sm mb-8 leading-relaxed">
+                Traveling A Wonderful Way To Travel Different Places. Learn About Different Cultures And Gain New Experiences!!
+              </p>
+              <button type="button" className="mt-auto text-sm font-bold flex items-center group-hover:translate-x-2 transition-transform">
+                Learn More
+              </button>
+              <div className="absolute -right-12 -top-12 w-48 h-48 rounded-full border-[10px] border-white/20 overflow-hidden">
+                <img className="w-full h-full object-cover scale-150 translate-x-4" src="https://lh3.googleusercontent.com/aida/ADBb0ugrwK_AGzzRpI_euPW2uJy65B11RWhwxbSFXDVgyva37DuBZ0TS3lhjZha5rQ9PVgQ00f5qe8-KjgeydmDr-7_0HbW5T5_OHDc1Ibxo6hswidnJfPvwTp3_22_SWtUvRn2Pjb8MCTjAErPc3cxa8IsPeczZubQydTc1Rh5Tae9eC_aITguBUadbcw4xc0euKEpHzGMuH1oOocCd4NFKFdQ-iBHROwOoYTT5BzyatrQz4--mNM1Brtqz1g" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[2rem] p-10 flex flex-col items-center text-center shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+            <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-8">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+              </svg>
+            </div>
+            <h4 className="text-xl font-bold mb-4">Play &amp;<br />Journey</h4>
           </div>
         </div>
-      </main>
+      </section>
 
-      {/* ── Bottom Action Bar ──────────────────────────────────────────── */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#c3c5d9]/40 shadow-[0_-2px_12px_rgba(0,0,0,0.06)] px-6 md:px-10 py-3 flex items-center justify-between gap-4 flex-wrap z-40">
-        <div className="flex items-center gap-2 text-[15px] font-semibold">
-          {isMultiCity ? (
-            anySegmentSelected ? (
-              <>
-                <PlaneTakeoff className="w-[18px] h-[18px] text-[#003ec7]" />
-                <span>
-                  {selectedSegmentCount} / {selectedFlights.length} legs selected
-                </span>
-                <span className="font-bold text-[#003ec7] text-[17px]">₹{new Intl.NumberFormat('en-IN').format(totalPrice)}</span>
-              </>
-            ) : (
-              <span className="font-normal text-[#434656]">Select a flight for each leg to continue</span>
-            )
-          ) : departureFlight ? (
-            <>
-              <PlaneTakeoff className="w-[18px] h-[18px] text-[#003ec7]" />
-              <span>
-                {departureFlight.airline} {departureFlight.flightNo}
-                {returnFlight && <>&nbsp;&bull;&nbsp;Return: {returnFlight.flightNo}</>}
-              </span>
-              <span className="font-bold text-[#003ec7] text-[17px]">₹{new Intl.NumberFormat('en-IN').format(totalPrice)}</span>
-            </>
-          ) : (
-            <span className="font-normal text-[#434656]">Select a departure flight to continue</span>
-          )}
+      {/* ── Wanderlust Promo ───────────────────────────────────────────── */}
+      <section className="max-w-7xl mx-auto px-4 py-24">
+        <div className="flex flex-col md:flex-row items-center gap-20">
+          <div className="w-full md:w-1/2 relative">
+            <div className="rounded-[3rem] overflow-hidden shadow-2xl">
+              <img alt="Coastline View" className="w-full h-[600px] object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAq7iAHOrb4sYU45NBeZuLX6RILkk7xY1X7Qf5o8xl9_6AFW61aE4zzm4VogDiVh7G9jqUN2KhoqSJPF_KtucUer2RmDe3EEXtg0RJefejXi_RZEfE0y7i3UrGFZJFzteH11D15T9B9tIakek9dgNNk4AJuXNOAyPirFHYgYZhPwUnZKTBU6sFzd3TFriFKHi88iCq8f6dNgTRR953ky9n4s17E-Nj2f9xcYk9jQu_ENEHPwhtnNpYXUF3VsYMECD4PdmIDEB9_3w" />
+            </div>
+            <div className="absolute -bottom-8 -left-8 bg-white p-8 rounded-[2rem] shadow-xl border border-slate-100">
+              <p className="text-blue-600 text-3xl font-black">20% OFF</p>
+              <p className="text-xs font-bold text-slate-400 mt-1">Till 28th Of March 2025</p>
+            </div>
+          </div>
+          <div className="w-full md:w-1/2">
+            <div className="flex items-center space-x-4 mb-4">
+              <h2 className="text-5xl lg:text-7xl font-black leading-none uppercase">Unleash</h2>
+              <p className="text-[10px] leading-tight text-slate-500 uppercase font-medium">
+                Discover A World Without Limits, Whether<br />You're Chasing Sunsets On Tropical Beaches Or<br />Exploring Vibrant Cityscapes
+              </p>
+            </div>
+            <h2 className="text-5xl lg:text-7xl font-black leading-none uppercase mb-4">Wanderlust With</h2>
+            <div className="flex items-baseline space-x-6">
+              <p className="text-[10px] leading-tight text-slate-500 uppercase font-medium">
+                From Breathtaking Landscapes To<br />Cultural Wonders, The World Is Yours<br />To Explore.
+              </p>
+              <h2 className="text-5xl lg:text-7xl font-black leading-none uppercase italic -tracking-[0.02em]">Skewing's</h2>
+            </div>
+            <div className="mt-12 w-full h-40 rounded-[2rem] overflow-hidden shadow-lg border-4 border-white">
+              <img className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDjNeMrMc2AJXxZ8z3LsmXTf0QBuP1AD-1_UxORL4zJwNCnCe-4ub3i4Oy2PKqT74K7dPlbXHjgDfdb7Wf73T652Un7x68ujMFU7e_mgHUl8k8hwfVqPBJnrjCXveKJh-8bu73o4hdC3TXjWt3IkGGEF6hVvCnNrT5m-OijezsPJzsyLNsC41-NT2PwgC7SJRB0cW9OKLRiGZHnanZMl4YNSE-ic3mUH3Ge9_e4OmCLdDr6zg-i2Snz0RQGc8KFLdfbsxoRU3Gj4g" />
+            </div>
+          </div>
         </div>
-        <div className="flex gap-3 items-center">
-          <Link
-            to="/step1"
-            className="inline-flex items-center gap-1.5 border-[1.5px] border-[#c3c5d9]/70 text-[#434656] px-5 py-2.5 rounded-lg text-sm font-semibold hover:border-[#434656] hover:text-[#191c1e] transition-colors"
-          >
-            <ArrowLeft className="w-[18px] h-[18px]" /> Back
-          </Link>
-          <button
-            onClick={handleContinue}
-            disabled={!canContinue}
-            className="inline-flex items-center gap-1.5 bg-[#0052ff] text-white px-7 py-2.5 rounded-lg text-sm font-bold transition-opacity hover:not-disabled:opacity-90 disabled:opacity-45 disabled:cursor-not-allowed"
-          >
-            Continue <ArrowRight className="w-[18px] h-[18px]" />
-          </button>
-        </div>
-      </div>
+      </section>
+
+      <Footer />
     </div>
   );
 }
