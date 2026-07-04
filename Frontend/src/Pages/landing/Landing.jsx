@@ -339,7 +339,7 @@ export default function WanderlyLandingPage() {
     <div className="min-h-screen bg-white font-sans text-slate-900">
       <Header />
       <Hero />
-      <ServiceTabs className="mb-12" />
+      <ServiceTabs  />
       <BookingFlights/>
       <Features />
       <PopularDestinations />

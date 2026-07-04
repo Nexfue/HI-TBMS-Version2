@@ -466,7 +466,7 @@ export default function BookingFlights() {
   };
 
   return (
-    <section ref={bookingSectionRef} className="max-w-7xl mx-auto px-4 -mt-[33px] relative z-20">
+    <section ref={bookingSectionRef} className="max-w-7xl mx-auto px-4 mt-2 relative z-20">
      
 
       <form onSubmit={searchFlights}>
