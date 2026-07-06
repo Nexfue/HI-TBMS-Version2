@@ -128,7 +128,7 @@ export default function Step1TravelDetails() {
         })
       )
     );
-    navigate('/step2');
+    navigate('/search-flights');
   };
 
   return (

@@ -21,7 +21,7 @@ const NAV_LINKS = ["Home", "Destinations", "Tours", "Flights", "Hotels", "Blog",
 
 const BOOKING_TABS = [
   { key: "flights", label: "Flights", icon: Plane , path:'/',  },
-  { key: "hotels", label: "Hotels", icon: Hotel , path:'/step3' ,},
+  { key: "hotels", label: "Hotels", icon: Hotel , path:'/hotel' ,},
   { key: "tours", label: "Tours", icon: Compass , path: '/step4',  },
   { key: "packages", label: "Packages", icon: Package , path:'/step' },
 ];

@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useSelector } from "react-redux";
+import { selectFlights } from "../../Store/slices/travelSlice";
 import {
   Info,
   ChevronDown,
@@ -9,6 +11,9 @@ import {
   Car,
   Leaf,
 } from "lucide-react";
+
+
+
 
 /* ------------------------------------------------------------------ */
 /*  Small reusable pieces                                             */
@@ -209,111 +214,111 @@ const AIRLINE_LOGOS = {
   tap: "https://images.kiwi.com/airlines/64/TP.png",
 };
 
-const FLIGHTS = [
-  {
-    id: "af",
-    airline: "AIR FRANCE",
-    logo: AIRLINE_LOGOS.airfrance,
-    sponsored: true,
-    headline: "A Rendez-Vous with Air France",
-    price: "₹1,03,300",
-    legs: [
-      {
-        time: "7:00 p.m.",
-        code: "YUL",
-        arrTime: "11:20 a.m.",
-        arrCode: "MAD",
-        duration: "10h 20\n1 stop CDG",
-        stopLabel: "1 stop CDG",
-      },
-      {
-        time: "10:05 a.m.",
-        code: "MAD",
-        arrTime: "3:00 p.m.",
-        arrCode: "YUL",
-        duration: "10h 55",
-        stopLabel: "1 stop CDG",
-      },
-    ],
-  },
-  {
-    id: "ts",
-    airline: "Air Transat",
-    logo: AIRLINE_LOGOS.airtransat,
-    co2Note: "This flight emits 19% less CO2e than a typical flight on this route",
-    price: "₹84,600",
-    dealsFrom: "6 deals from",
-    legs: [
-      {
-        time: "11:40 p.m.",
-        code: "YUL",
-        arrTime: "12:40 p.m.",
-        arrCode: "MAD",
-        duration: "7h",
-        stopLabel: "Direct",
-      },
-      {
-        time: "2:10 p.m.",
-        code: "MAD",
-        arrTime: "4:05 a.m.",
-        arrCode: "YUL",
-        duration: "7h 55",
-        stopLabel: "Direct +1",
-      },
-    ],
-  },
-  {
-    id: "ac",
-    airline: "Air Canada",
-    logo: AIRLINE_LOGOS.aircanada,
-    co2Note: "This flight emits 31% less CO2e than a typical flight on this route",
-    price: "₹86,300",
-    dealsFrom: "6 deals from",
-    legs: [
-      {
-        time: "5:35 p.m.",
-        code: "YUL",
-        arrTime: "6:40 a.m.",
-        arrCode: "MAD",
-        duration: "7h 05",
-        stopLabel: "Direct +1",
-      },
-      {
-        time: "12:45 p.m.",
-        code: "MAD",
-        arrTime: "2:55 p.m.",
-        arrCode: "YUL",
-        duration: "8h 10",
-        stopLabel: "Direct",
-      },
-    ],
-  },
-  {
-    id: "tp",
-    airline: "TAP Air Portugal",
-    logo: AIRLINE_LOGOS.tap,
-    price: "₹76,200",
-    dealsFrom: "11 deals from",
-    legs: [
-      {
-        time: "10:45 p.m.",
-        code: "YUL",
-        arrTime: "3:20 p.m.",
-        arrCode: "MAD",
-        duration: "10h 35\n1 stop LIS",
-        stopLabel: "1 stop LIS",
-      },
-      {
-        time: "4:20 p.m.",
-        code: "MAD",
-        arrTime: "9:10 p.m.",
-        arrCode: "YUL",
-        duration: "10h 50",
-        stopLabel: "1 stop LIS +1",
-      },
-    ],
-  },
-];
+// const FLIGHTS = [
+//   {
+//     id: "af",
+//     airline: "AIR FRANCE",
+//     logo: AIRLINE_LOGOS.airfrance,
+//     sponsored: true,
+//     headline: "A Rendez-Vous with Air France",
+//     price: "₹1,03,300",
+//     legs: [
+//       {
+//         time: "7:00 p.m.",
+//         code: "YUL",
+//         arrTime: "11:20 a.m.",
+//         arrCode: "MAD",
+//         duration: "10h 20\n1 stop CDG",
+//         stopLabel: "1 stop CDG",
+//       },
+//       {
+//         time: "10:05 a.m.",
+//         code: "MAD",
+//         arrTime: "3:00 p.m.",
+//         arrCode: "YUL",
+//         duration: "10h 55",
+//         stopLabel: "1 stop CDG",
+//       },
+//     ],
+//   },
+//   {
+//     id: "ts",
+//     airline: "Air Transat",
+//     logo: AIRLINE_LOGOS.airtransat,
+//     co2Note: "This flight emits 19% less CO2e than a typical flight on this route",
+//     price: "₹84,600",
+//     dealsFrom: "6 deals from",
+//     legs: [
+//       {
+//         time: "11:40 p.m.",
+//         code: "YUL",
+//         arrTime: "12:40 p.m.",
+//         arrCode: "MAD",
+//         duration: "7h",
+//         stopLabel: "Direct",
+//       },
+//       {
+//         time: "2:10 p.m.",
+//         code: "MAD",
+//         arrTime: "4:05 a.m.",
+//         arrCode: "YUL",
+//         duration: "7h 55",
+//         stopLabel: "Direct +1",
+//       },
+//     ],
+//   },
+//   {
+//     id: "ac",
+//     airline: "Air Canada",
+//     logo: AIRLINE_LOGOS.aircanada,
+//     co2Note: "This flight emits 31% less CO2e than a typical flight on this route",
+//     price: "₹86,300",
+//     dealsFrom: "6 deals from",
+//     legs: [
+//       {
+//         time: "5:35 p.m.",
+//         code: "YUL",
+//         arrTime: "6:40 a.m.",
+//         arrCode: "MAD",
+//         duration: "7h 05",
+//         stopLabel: "Direct +1",
+//       },
+//       {
+//         time: "12:45 p.m.",
+//         code: "MAD",
+//         arrTime: "2:55 p.m.",
+//         arrCode: "YUL",
+//         duration: "8h 10",
+//         stopLabel: "Direct",
+//       },
+//     ],
+//   },
+//   {
+//     id: "tp",
+//     airline: "TAP Air Portugal",
+//     logo: AIRLINE_LOGOS.tap,
+//     price: "₹76,200",
+//     dealsFrom: "11 deals from",
+//     legs: [
+//       {
+//         time: "10:45 p.m.",
+//         code: "YUL",
+//         arrTime: "3:20 p.m.",
+//         arrCode: "MAD",
+//         duration: "10h 35\n1 stop LIS",
+//         stopLabel: "1 stop LIS",
+//       },
+//       {
+//         time: "4:20 p.m.",
+//         code: "MAD",
+//         arrTime: "9:10 p.m.",
+//         arrCode: "YUL",
+//         duration: "10h 50",
+//         stopLabel: "1 stop LIS +1",
+//       },
+//     ],
+//   },
+// ];
 
 /* ------------------------------------------------------------------ */
 /*  Main page                                                          */
@@ -326,6 +331,8 @@ export default function FlightBookingPage() {
   const [durationRange, setDurationRange] = useState([8 * 60, 34.5 * 60]);
   const [sortBy, setSortBy] = useState("best");
   const [saved, setSaved] = useState({});
+  const flights = useSelector(selectFlights);
+console.log(flights);
 
   const toggleStop = (key) =>
     setStops((s) => ({ ...s, [key]: !s[key] }));
@@ -541,15 +548,15 @@ export default function FlightBookingPage() {
           </div>
 
           <div className="space-y-3">
-            {FLIGHTS.map((flight) => (
-              <FlightCard
-                key={flight.id}
-                flight={flight}
-                saved={!!saved[flight.id]}
-                onToggleSave={() => toggleSave(flight.id)}
-              />
-            ))}
-          </div>
+       {flights.map((flight, index) => (
+         <FlightCard
+         key={flight.bookingToken || index}
+          flight={flight}
+          saved={!!saved[flight.bookingToken]}
+         onToggleSave={() => toggleSave(flight.bookingToken)}
+        />
+     ))}
+      </div>
         </section>
 
         {/* -------------------------------------------------- */}

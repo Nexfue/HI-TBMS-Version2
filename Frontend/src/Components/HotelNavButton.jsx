@@ -17,7 +17,7 @@ export default function HotelNavButton({ className = 'w-6 h-6', label = 'Hotels'
   return (
     <button
       type="button"
-      onClick={() => navigate('/step3')}
+      onClick={() => navigate('/hotel')}
       className="flex flex-col items-center gap-1 text-[#434656] hover:text-[#003ec7] transition-colors"
     >
       <HotelIcon className={className} />

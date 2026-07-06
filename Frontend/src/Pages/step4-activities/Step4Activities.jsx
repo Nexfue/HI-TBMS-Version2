@@ -831,7 +831,7 @@ export default function Step4Activities() {
           )}
         </div>
         <div className="bar-actions">
-          <Link to="/step3" className="btn-back">
+          <Link to="/hotel" className="btn-back">
             <ArrowLeft size={18} /> Back
           </Link>
           <button className="btn-continue" onClick={handleContinue}>

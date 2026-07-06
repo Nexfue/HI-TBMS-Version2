@@ -398,7 +398,7 @@ export default function HotelResults() {
   // Re-run the search: pushes fresh criteria into route state so this page
   // (and a browser refresh/back button) always reflects the current search.
   const handleNewSearch = (newCriteria) => {
-    navigate('/step3/results', { state: { ...newCriteria, priceBands: filters.priceBands } });
+    navigate('/hotel/results', { state: { ...newCriteria, priceBands: filters.priceBands } });
   };
 
   const filteredRooms = useMemo(() => {

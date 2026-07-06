@@ -2,10 +2,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
+import { searchFlights as searchFlightsApi } from "../api/flightApi";
+import { getAirportCode } from "../Data/airports";
 
-// ⚠️ Adjust this import path to match where your Redux slice actually lives
-import { setTravelDetails } from '../Store/slices/travelSlice';
 
+import {
+  setTravelDetails,
+  setFlights,
+} from "../Store/slices/travelSlice";
 
 
 /* ------------------------------------------------------------------ */
@@ -439,7 +443,7 @@ export default function BookingFlights() {
           })),
         })
       );
-      navigate('/step2');
+      navigate('/search-flights');
       return;
     }
 
@@ -462,14 +466,50 @@ export default function BookingFlights() {
         travelClass,
       })
     );
-    navigate('/step2');
+    navigate('/search-flights');
   };
+  const handleSearch = async (e) => {
+  e.preventDefault();
+
+  try {
+  const searchData = {
+  from: getAirportCode(from),
+  to: getAirportCode(to),
+  departureDate,
+  returnDate,
+  tripType,
+  adults: travelers,
+  children: 0,
+  travelClass,
+};
+console.log(searchData);
+
+  const response = await searchFlightsApi(searchData);
+
+
+console.log("Connected ✅");
+console.log(response.data);
+
+// Save all flights in Redux
+dispatch(setFlights(response.data.data));
+
+// Go to search results page
+navigate("/search-flights");
+console.log(response.data.data);
+  // Later:
+  // dispatch(setFlights(response.data.data));
+  // navigate("/flights");
+
+} catch (error) {
+  console.error(error);
+};
+  }
 
   return (
     <section ref={bookingSectionRef} className="max-w-7xl mx-auto px-4 mt-2 relative z-20">
      
 
-      <form onSubmit={searchFlights}>
+      <form onSubmit={handleSearch}>
         <div className="bg-white rounded-[2rem] shadow-2xl p-8 border border-slate-100">
           {/* Trip type selector */}
           <div className="flex items-center space-x-8 mb-8 border-b border-slate-100 pb-4">
@@ -873,4 +913,4 @@ export default function BookingFlights() {
       </form>
     </section>
   );
-}
+  }

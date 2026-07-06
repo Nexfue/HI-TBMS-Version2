@@ -3,23 +3,30 @@ import { createSlice } from '@reduxjs/toolkit';
 // ====================== Initial State ======================
 // Every field TravelDataService (Angular) used to expose, kept in one
 // place so all five steps share a single source of truth.
-
 const initialState = {
-  travelDetails: null, // see models/travel.models.js -> TravelDetails
+  travelDetails: null,
 
+  // Flights Search Result
+  flights: [],
+
+  // Selected Flights
   departureFlight: null,
   returnFlight: null,
-  multiCityFlights: [], // (Flight | null)[]
+  multiCityFlights: [],
 
+  // Hotel
   hotel: null,
   selectedRoom: null,
 
-  selectedActivities: [], // Activity[]
+  // Activities
+  selectedActivities: [],
 
+  // Transport
   transport: null,
   selectedSeat: null,
   mealPlan: null,
 
+  // PDF
   pdfBase64: null,
   itineraryId: null,
 };
@@ -34,6 +41,9 @@ const travelSlice = createSlice({
     setTravelDetails(state, action) {
       state.travelDetails = action.payload;
     },
+    setFlights(state, action) {
+  state.flights = action.payload;
+},
 
     // ---------------- Flights ----------------
     // Each field is set independently — Step2Flights dispatches
@@ -93,6 +103,7 @@ const travelSlice = createSlice({
 
 export const {
   setTravelDetails,
+  setFlights,
   setDepartureFlight,
   setReturnFlight,
   setMultiCityFlights,
@@ -155,6 +166,7 @@ export const selectFlightCost = (state) => {
   if (state.travel.returnFlight) total += state.travel.returnFlight.price * pax;
   return total;
 };
+export const selectFlights = (state) => state.travel.flights;
 
 export const selectHotelCost = (state) => {
   if (!state.travel.hotel) return 0;

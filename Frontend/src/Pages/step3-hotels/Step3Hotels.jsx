@@ -256,7 +256,7 @@ export default function Landing() {
       rooms,
       priceBands: selectedPriceBands,
     };
-    navigate('/step3/results', { state: criteria });
+    navigate('/hotel/results', { state: criteria });
   };
 
   const scrollToBooking = () => {

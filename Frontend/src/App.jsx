@@ -18,9 +18,9 @@ function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/step1" element={<Step1TravelDetails />} />
-        <Route path="/step2" element={<Step2Flights />} />
-        <Route path="/step3" element={<Step3Hotels />} />
-        <Route path="/step3/results" element={<HotelResults />} />
+        <Route path="/search-flights" element={<Step2Flights />} />
+        <Route path="/hotel" element={<Step3Hotels />} />
+        <Route path="/hotel/results" element={<HotelResults />} />
         <Route path="/room/:id" element={<RoomDetails />} />
         <Route path="/step4" element={<Step4Activities />} />
         <Route path="/step5" element={<Step5Transport />} />
