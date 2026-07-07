@@ -452,14 +452,7 @@ console.log(flights);
       `}</style>
 
       {/* Top bar */}
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center gap-2 px-4 py-3">
-          <Plane className="h-6 w-6 rotate-45 text-teal-700" />
-          <span className="text-lg font-bold tracking-tight text-slate-800">
-            skyscanner
-          </span>
-        </div>
-      </header>
+      {/*  */}
 
       <main className="mx-auto max-w-7xl gap-6 px-4 py-6 lg:flex lg:items-start">
         {/* -------------------------------------------------- */}
