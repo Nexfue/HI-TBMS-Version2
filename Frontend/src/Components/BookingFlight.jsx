@@ -492,7 +492,7 @@ console.log(response.data);
 
 // Save all flights in Redux
 dispatch(setFlights(response.data.data));
-
+console.log("Flights to Redux:", response.data.data);
 // Go to search results page
 navigate("/search-flights");
 console.log(response.data.data);

@@ -7,6 +7,10 @@ import ServiceTabs from '../../Components/serviceTabs';
 import HeaderHero from '../../Components/HeaderHero';
 import Footer from '../../Components/Footer';
 
+import { searchHotels } from "../../api/hotelApi";
+import { useDispatch } from "react-redux";
+import { setHotelResults } from "../../Store/slices/travelSlice";
+
 // ── Small shared icon ────────────────────────────────────────────────────
 const PinIcon = ({ className }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 20 20">
@@ -200,6 +204,7 @@ function PriceBandsPopover({ selected, onToggle, onClose }) {
 
 export default function Landing() {
   const navigate = useNavigate();
+   const dispatch = useDispatch();
   const bookingSectionRef = useRef(null);
   const travelDetails = useSelector((s) => s.travel.travelDetails);
   const today = todayISO();
@@ -247,18 +252,40 @@ export default function Landing() {
     }
   };
 
-  const handleHotelSearch = (e) => {
-    e.preventDefault();
-    const criteria = {
-      location,
-      checkIn,
-      checkOut,
-      rooms,
-      priceBands: selectedPriceBands,
-    };
-    navigate('/hotel/results', { state: criteria });
-  };
+  const handleHotelSearch = async (e) => {
+  e.preventDefault();
 
+  try {
+   const searchData = {
+  destination: location,
+  checkInDate: checkIn,
+  checkOutDate: checkOut,
+  adults: rooms[0].adults,
+  children: rooms[0].children,
+};
+
+    console.log(searchData);
+
+    const response = await searchHotels(searchData);
+
+    console.log("Connected ✅");
+    console.log(response.data);
+
+   dispatch(setHotelResults(response.data.data));
+
+console.log("Before navigate");
+
+navigate("/hotel/results");
+
+console.log("After navigate");
+
+  } catch (error) {
+    console.error(error);
+  }
+};
+console.log("rooms:", rooms);
+console.log("typeof rooms:", typeof rooms);
+console.log(rooms[0]);
   const scrollToBooking = () => {
     bookingSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
   };

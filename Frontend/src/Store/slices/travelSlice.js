@@ -29,6 +29,9 @@ const initialState = {
   // PDF
   pdfBase64: null,
   itineraryId: null,
+
+  hotelResults: [],
+selectedHotel: null,
 };
 
 // ====================== Slice ======================
@@ -91,6 +94,14 @@ const travelSlice = createSlice({
       state.pdfBase64 = action.payload.pdfBase64 ?? null;
       state.itineraryId = action.payload.itineraryId ?? null;
     },
+    
+    setHotelResults: (state, action) => {
+    state.hotelResults = action.payload;
+},
+
+    setSelectedHotel: (state, action) => {
+    state.selectedHotel = action.payload;
+   },
 
     // ---------------- Reset ----------------
     resetTravel() {
@@ -115,6 +126,8 @@ export const {
   setMealPlan,
   setItineraryResult,
   resetTravel,
+   setHotelResults,
+    setSelectedHotel,
 } = travelSlice.actions;
 
 export default travelSlice.reducer;
@@ -183,6 +196,10 @@ export const selectTransportCost = (state) => {
   if (!state.travel.transport) return 0;
   return state.travel.transport.pricePerDay * selectNights(state);
 };
+export const selectHotels = (state) => state.travel.hotelResults;
+
+export const selectSelectedHotel = (state) =>
+    state.travel.selectedHotel;
 
 export const selectTotalCost = (state) =>
   selectFlightCost(state) + selectHotelCost(state) + selectActivitiesCost(state) + selectTransportCost(state);

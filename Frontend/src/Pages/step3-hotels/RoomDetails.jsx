@@ -69,7 +69,11 @@ const CHECK_OUT_RULES = [
 
 const todayISO = () => new Date().toISOString().split('T')[0];
 
-const formatRupees = (n) => `₹${n.toLocaleString('en-IN')}`;
+//const formatRupees = (n) => `₹${n.toLocaleString('en-IN')}`;
+function formatRupees(price) {
+  if (!price) return "N/A";
+  return price; // API already returns "₹1,256"
+}
 
 // ── Booking sidebar form ─────────────────────────────────────────────────
 function BookRoomForm({ room }) {
@@ -190,7 +194,7 @@ function BookRoomForm({ room }) {
           <div className="relative">
             <select required value={form.roomType} onChange={update('roomType')} className={selectClass}>
               <option value="" disabled>Select</option>
-              <option value={room.tag}>{room.tag}</option>
+              <option value={room.type}>{room.type}</option>
             </select>
             <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
@@ -286,7 +290,7 @@ export default function RoomDetails() {
                 <div className="flex items-center gap-3 flex-wrap">
                   <h2 className="text-2xl font-black text-gray-900">{room.name}</h2>
                   <span className="bg-emerald-800 text-white text-[11px] font-bold px-3 py-1 rounded-full">
-                    {room.tag}
+                    {room.type}
                   </span>
                 </div>
                 <p className="text-sm text-gray-500 mt-2">{room.address || FALLBACK_ROOM.address}</p>
@@ -299,7 +303,7 @@ export default function RoomDetails() {
                 </div>
 
                 <p className="text-2xl font-black text-gray-900 mt-3">
-                  {formatRupees(room.price)} <span className="text-sm font-normal text-gray-400">/ night</span>
+                  {formatRupees(room.pricePerNight)} <span className="text-sm font-normal text-gray-400">/ night</span>
                 </p>
 
                 <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">

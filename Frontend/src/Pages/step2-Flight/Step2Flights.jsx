@@ -15,6 +15,7 @@ import {
 
 
 
+
 /* ------------------------------------------------------------------ */
 /*  Small reusable pieces                                             */
 /* ------------------------------------------------------------------ */
@@ -33,6 +34,7 @@ function DualRangeSlider({ min, max, values, onChange, formatLabel }) {
 
   const lowPct = ((low - min) / (max - min)) * 100;
   const highPct = ((high - min) / (max - min)) * 100;
+
 
   return (
     <div className="pt-1">
@@ -113,14 +115,26 @@ function Leg({ time, code, arrTime, arrCode, duration, stopLabel }) {
         <div className="text-xs text-slate-400">{code}</div>
       </div>
       <div className="flex flex-1 flex-col items-center px-1">
-        <div className="text-[11px] text-slate-400">{duration}</div>
-        <div className="relative h-px w-full bg-slate-300">
-          <div className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-slate-400" />
-        </div>
-        <div className="text-[11px] font-medium text-rose-500">
-          {stopLabel}
-        </div>
-      </div>
+
+  <div className="text-[11px] text-slate-400">
+    {duration}
+  </div>
+
+  <div className="flex items-center w-full my-1">
+
+    <div className="flex-1 h-px bg-slate-300"></div>
+
+    <Plane className="mx-2 h-4 w-4 text-slate-500 rotate-90" />
+
+    <div className="flex-1 h-px bg-slate-300"></div>
+
+  </div>
+
+  <div className="text-[11px] font-medium text-rose-500">
+    {stopLabel}
+  </div>
+
+</div>
       <div className="w-14">
         <div className="text-sm font-semibold text-slate-800">{arrTime}</div>
         <div className="text-xs text-slate-400">{arrCode}</div>
@@ -128,75 +142,129 @@ function Leg({ time, code, arrTime, arrCode, duration, stopLabel }) {
     </div>
   );
 }
+const formatDuration = (minutes) => {
+  if (!minutes) return "";
+
+  const hrs = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+
+  return `${hrs}h ${mins}m`;
+};
 
 function FlightCard({ flight, saved, onToggleSave }) {
+  const departureTime = flight.departureTime?.split(" ")[1] || "";
+  const arrivalTime = flight.arrivalTime?.split(" ")[1] || "";
+
   return (
-    <div
-      className={`overflow-hidden rounded-xl border ${
-        flight.sponsored
-          ? "border-slate-900/10 ring-1 ring-slate-900/5"
-          : "border-slate-200"
-      } bg-white`}
-    >
-      {flight.co2Note && (
-        <div className="flex items-center gap-1.5 border-b border-emerald-100 bg-emerald-50 px-4 py-1.5 text-xs font-medium text-emerald-700">
-          <Leaf className="h-3.5 w-3.5" />
-          {flight.co2Note}
-        </div>
-      )}
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
 
-      {flight.sponsored && (
-        <div className="flex items-center justify-between bg-slate-900 px-4 py-2 text-white">
-          <div className="flex items-center gap-2">
-            <span className="font-serif text-sm tracking-wide">
-              {flight.airline}
+      {/* Layover / CO2 */}
+      {flight.layovers?.length > 0 && (
+        <div className="flex items-center gap-2 border-b border-emerald-100 bg-emerald-50 px-4 py-2 text-xs text-emerald-700">
+          <Leaf className="h-4 w-4" />
+          {flight.stops} Stop
+          {flight.layovers.map((layover, index) => (
+            <span key={index}>
+              • {layover.name} ({layover.duration} mins)
             </span>
-            <span className="text-sm text-slate-200">{flight.headline}</span>
-          </div>
-          <div className="flex items-center gap-1 text-xs text-slate-300">
-            Sponsored <Info className="h-3.5 w-3.5" />
-          </div>
-        </div>
-      )}
-
-      <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
-        <div className="flex w-full flex-1 flex-col gap-3">
-          {flight.legs.map((leg, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <img
-                src={flight.logo}
-                alt={flight.airline}
-                className="h-6 w-6 shrink-0 rounded-full object-cover"
-              />
-              <Leg {...leg} />
-            </div>
           ))}
         </div>
+      )}
 
-        <div className="flex w-full shrink-0 flex-col items-end gap-2 sm:w-40">
-          {!flight.sponsored && (
-            <div className="flex w-full items-center justify-between">
-              <span className="text-xs text-slate-400">
-                {flight.dealsFrom}
-              </span>
-              <FavoriteButton active={saved} onToggle={onToggleSave} />
-            </div>
-          )}
-          {flight.sponsored && (
-            <span className="text-xs text-slate-400">
-              Book with {flight.airline} from
+      <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
+
+        {/* Airline + Flight Details */}
+        <div className="flex flex-1 items-center gap-4">
+
+          <img
+            src={flight.airlineLogo}
+            alt={flight.airline}
+            className="h-10 w-10 rounded-full object-contain"
+          />
+
+          <div className="flex flex-col">
+
+            <h3 className="font-semibold text-slate-800">
+              {flight.airline}
+            </h3>
+
+            <span className="text-sm text-slate-500">
+              {flight.flightNumber}
             </span>
-          )}
-          <div className="text-lg font-bold text-slate-900">
-            {flight.price}
+
           </div>
+
+        </div>
+
+        {/* Journey */}
+        <div className="flex flex-1 items-center justify-between">
+
+          <div className="text-center">
+            <h2 className="text-lg font-bold">
+              {departureTime}
+            </h2>
+
+            <p className="text-sm text-slate-500">
+              {flight.departureAirport}
+            </p>
+          </div>
+
+         <div className="flex flex-col items-center flex-1 px-4">
+
+  <span className="text-sm text-slate-500">
+    {formatDuration(flight.duration)}
+  </span>
+
+  <div className="flex items-center w-full my-2">
+
+    <div className="flex-1 h-px bg-slate-300"></div>
+
+    <Plane className="mx-2 h-4 w-4 text-slate-500 rotate-90" />
+
+    <div className="flex-1 h-px bg-slate-300"></div>
+
+  </div>
+
+  <span className="text-xs text-red-500">
+    {flight.stops === 0
+      ? "Direct"
+      : `${flight.stops} Stop${flight.stops > 1 ? "s" : ""}`}
+  </span>
+
+</div>
+
+          <div className="text-center">
+            <h2 className="text-lg font-bold">
+              {arrivalTime}
+            </h2>
+
+            <p className="text-sm text-slate-500">
+              {flight.arrivalAirport}
+            </p>
+          </div>
+
+        </div>
+
+        {/* Price */}
+        <div className="flex w-full flex-col items-end gap-2 sm:w-44">
+
+          <FavoriteButton
+            active={saved}
+            onToggle={onToggleSave}
+          />
+
+          <div className="text-2xl font-bold text-slate-900">
+            ₹{flight.price.toLocaleString("en-IN")}
+          </div>
+
           <button
-            type="button"
-            className="w-full rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-800"
+            className="w-full rounded-lg bg-teal-700 px-4 py-2 text-white hover:bg-teal-800"
           >
             Select →
           </button>
+
         </div>
+
       </div>
     </div>
   );

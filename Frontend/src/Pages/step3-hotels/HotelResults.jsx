@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Search, Star, BedDouble, Bath, Maximize, ChevronRight, SlidersHorizontal } from 'lucide-react';
 
+import { useSelector } from "react-redux";
+import { selectHotels } from "../../Store/slices/travelSlice";
+
 // ── Static data ──────────────────────────────────────────────────────────
 const PRICE_BANDS = [
   { id: '0-1000', label: '₹0 - ₹1000', count: 151 },
@@ -24,18 +27,6 @@ const USER_RATINGS = [
   { id: 'good', label: 'Good: 3+', count: 812 },
 ];
 
-const ROOMS = [
-  { id: 1, name: 'Standard Rooms', tag: 'Luxury Room', price: 12500, rating: 4.9, reviews: 245, stars: 3, beds: 1, baths: 1, sqft: 350, img: 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800&q=80' },
-  { id: 2, name: 'Deluxe Rooms', tag: 'Luxury Room', price: 20500, rating: 5.0, reviews: 189, stars: 4, beds: 1, baths: 1, sqft: 420, img: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80' },
-  { id: 3, name: 'The Pearl Suite', tag: 'Luxury Room', price: 37500, rating: 4.9, reviews: 312, stars: 4, beds: 2, baths: 1, sqft: 560, img: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=800&q=80' },
-  { id: 4, name: 'Golden Horizon Suite', tag: 'Luxury Suites', price: 45500, rating: 4.9, reviews: 201, stars: 5, beds: 2, baths: 2, sqft: 680, img: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&q=80' },
-  { id: 5, name: 'The Haven Room', tag: 'Luxury Suites', price: 25000, rating: 5.0, reviews: 176, stars: 4, beds: 1, baths: 1, sqft: 400, img: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80' },
-  { id: 6, name: 'The Executive Deluxe', tag: 'Luxury Suites', price: 37500, rating: 5.0, reviews: 224, stars: 5, beds: 2, baths: 1, sqft: 520, img: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80' },
-  { id: 7, name: 'The Prestige Room', tag: 'Luxury Rooms', price: 45500, rating: 5.0, reviews: 158, stars: 5, beds: 2, baths: 2, sqft: 610, img: 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=800&q=80' },
-  { id: 8, name: 'Royal Suite', tag: 'Luxury Suites', price: 49500, rating: 5.0, reviews: 267, stars: 5, beds: 3, baths: 2, sqft: 720, img: 'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?w=800&q=80' },
-  { id: 9, name: 'Family Suites', tag: 'Luxury Suites', price: 62000, rating: 5.0, reviews: 293, stars: 5, beds: 4, baths: 2, sqft: 850, img: 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800&q=80' },
-];
-
 const todayISO = () => new Date().toISOString().split('T')[0];
 
 const addDays = (isoDate, days) => {
@@ -46,10 +37,17 @@ const addDays = (isoDate, days) => {
 
 const formatDisplayDate = (isoDate) => {
   const d = new Date(isoDate);
-  return d.toLocaleDateString('en-IN', { weekday: 'short' }) + ', ' + d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  return (
+    d.toLocaleDateString('en-IN', { weekday: 'short' }) +
+    ', ' +
+    d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  );
 };
 
-const formatRupees = (n) => `₹${n.toLocaleString('en-IN')}`;
+function formatRupees(price) {
+  if (!price) return 'N/A';
+  return price; // API already returns "₹1,256"
+}
 
 // ── Checkbox row used across all filter groups ──────────────────────────
 function FilterCheckbox({ label, count, checked, onChange }) {
@@ -204,7 +202,9 @@ function RoomCard({ room }) {
   const navigate = useNavigate();
 
   const goToDetails = () => {
-    navigate(`/room/${room.id}`, { state: { room } });
+    navigate(`/room/${encodeURIComponent(room.name)}`, {
+      state: { room },
+    });
   };
 
   return (
@@ -214,16 +214,16 @@ function RoomCard({ room }) {
     >
       <div className="relative h-52 overflow-hidden">
         <img
-          src={room.img}
+          src={room.image}
           alt={room.name}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
         />
         <span className="absolute top-3 left-3 bg-blue-600 text-white text-[11px] font-bold px-2.5 py-1 rounded-full">
-          {room.tag}
+          {room.type}
         </span>
         <span className="absolute top-3 right-3 bg-white/95 text-gray-900 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
           <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-          {room.rating.toFixed(1)}
+          {room.rating?.toFixed(1)}
         </span>
       </div>
 
@@ -231,20 +231,20 @@ function RoomCard({ room }) {
         <h4 className="text-lg font-bold text-gray-900">{room.name}</h4>
 
         <div className="flex items-center gap-3 text-xs text-gray-500 mt-2">
-          <span className="flex items-center gap-1">
-            <BedDouble className="w-3.5 h-3.5" /> {room.beds} Bed
-          </span>
-          <span className="flex items-center gap-1">
-            <Bath className="w-3.5 h-3.5" /> {room.baths} Bath
-          </span>
-          <span className="flex items-center gap-1">
-            <Maximize className="w-3.5 h-3.5" /> {room.sqft} sqft
-          </span>
+          <span>{room.reviews} reviews</span>
+        </div>
+
+        <div className="flex flex-wrap gap-2 mt-3">
+          {room.amenities?.slice(0, 3).map((item) => (
+            <span key={item} className="text-xs bg-gray-100 px-2 py-1 rounded-full">
+              {item}
+            </span>
+          ))}
         </div>
 
         <div className="flex items-end justify-between mt-4 pt-4 border-t border-gray-100">
           <div>
-            <p className="text-xl font-black text-gray-900">{formatRupees(room.price)}</p>
+            <p className="text-xl font-black text-gray-900">{formatRupees(room.pricePerNight)}</p>
             <p className="text-[11px] text-gray-400">per night, excl. taxes</p>
           </div>
           <button
@@ -373,27 +373,17 @@ function SearchBar({ initialCriteria, onSearch }) {
 // ── Page ─────────────────────────────────────────────────────────────────
 export default function HotelResults() {
   const navigate = useNavigate();
-  const routeLocation = useLocation();
-  // Criteria passed from Landing.jsx via:
-  // navigate('/step3/results', { state: { location, checkIn, checkOut, rooms, priceBands } })
-  const criteria = routeLocation.state;
+
+  const hotels = useSelector(selectHotels);
 
   const [filters, setFilters] = useState({
     preference: 'perNight',
-    priceBands: criteria?.priceBands || [],
+    priceBands: [],
     budgetMin: '',
     budgetMax: '',
     stars: [],
     ratings: [],
   });
-
-  // If someone lands here without state (e.g. direct URL visit), send them
-  // back to search instead of showing an empty/undefined criteria page.
-  useEffect(() => {
-    if (!criteria) {
-      navigate('/', { replace: true });
-    }
-  }, [criteria, navigate]);
 
   // Re-run the search: pushes fresh criteria into route state so this page
   // (and a browser refresh/back button) always reflects the current search.
@@ -401,29 +391,13 @@ export default function HotelResults() {
     navigate('/hotel/results', { state: { ...newCriteria, priceBands: filters.priceBands } });
   };
 
-  const filteredRooms = useMemo(() => {
-    return ROOMS.filter((room) => {
-      if (filters.budgetMin && room.price < Number(filters.budgetMin)) return false;
-      if (filters.budgetMax && room.price > Number(filters.budgetMax)) return false;
-
-      if (filters.stars.length > 0 && !filters.stars.includes(String(room.stars))) return false;
-
-      if (filters.ratings.length > 0) {
-        const bucket = room.rating >= 4.2 ? 'excellent' : room.rating >= 3.5 ? 'verygood' : 'good';
-        if (!filters.ratings.includes(bucket)) return false;
-      }
-
-      return true;
-    });
-  }, [filters.budgetMin, filters.budgetMax, filters.stars, filters.ratings]);
-
-  if (!criteria) return null;
+  // hotels from Redux may be undefined on first render before the API call resolves
+  const filteredRooms = hotels || [];
 
   return (
     <div className="bg-slate-50 min-h-screen font-['Inter',sans-serif]">
       <div className="max-w-7xl mx-auto px-4 py-6">
-
-        <SearchBar initialCriteria={criteria} onSearch={handleNewSearch} />
+        <SearchBar onSearch={handleNewSearch} />
 
         <div className="flex flex-col lg:flex-row gap-6 mt-6">
           <FilterSidebar filters={filters} setFilters={setFilters} />
@@ -431,16 +405,14 @@ export default function HotelResults() {
           <main className="flex-1">
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h2 className="text-2xl font-black text-gray-900">
-                  Luxury Rooms &amp; Suites {criteria.location ? `in ${criteria.location}` : ''}
-                </h2>
+                <h2 className="text-2xl font-black text-gray-900">Luxury Rooms &amp; Suites</h2>
                 <p className="text-sm text-gray-500 mt-1">{filteredRooms.length} properties found</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredRooms.map((room) => (
-                <RoomCard key={room.id} room={room} />
+              {filteredRooms.map((room, index) => (
+                <RoomCard key={`${room.name}-${index}`} room={room} />
               ))}
             </div>
 
