@@ -224,7 +224,6 @@ function HiddenDateInput({ id, value, min, onChange }) {
       value={value}
       min={min}
       onChange={(e) => onChange(e.target.value)}
-      onClick={(e) => e.stopPropagation()}
       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
     />
   );
@@ -579,7 +578,12 @@ console.log(response.data.data);
               </div>
 
               {/* DEPARTURE */}
-              <div className="space-y-2 border-l border-slate-100 pl-6 relative cursor-pointer" onClick={() => triggerDatePicker('dep-date-ow')}>
+              <div className="space-y-2 border-l border-slate-100 pl-6 relative cursor-pointer" 
+               onClick={() => {
+           
+        triggerDatePicker("dep-date-ow");
+            }}
+                >
                 <p className="text-xs font-bold text-slate-400 uppercase">Departure</p>
                 <div className="text-2xl font-bold">
                   {getDayPart(departureDate)}

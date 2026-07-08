@@ -4,17 +4,19 @@ import { store } from './Store/store';
 
 import Landing from "./Pages/landing/Landing";
 import Step1TravelDetails from "./Pages/step1-Travel-details/Step1Traveldetails";
-import Step2Flights from "./Pages/step2-Flight/Step2Flights";
+import Step2Flights from "./Pages/step2-Flight/Step2FlightsResult"
 import Step3Hotels from "./Pages/step3-hotels/Step3Hotels";
 import HotelResults from './Pages/step3-hotels/HotelResults'; 
  import RoomDetails from './Pages/step3-hotels/RoomDetails'; 
 import Step4Activities from "./Pages/step4-activities/Step4Activities";
 import Step5Transport from "./Pages/step5-transport/Step5Transport";
 import Confirmation from "./Pages/Confirmation/Confirmation";
+import ScrollToTop from "./Components/ScrollComponent"
 
 function App() {
   return (
     <Provider store={store}>
+       <ScrollToTop />
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/step1" element={<Step1TravelDetails />} />

@@ -12,9 +12,7 @@ import {
   Leaf,
 } from "lucide-react";
 
-
-
-
+import BookingFlightsSection from "../../Components/BookingFlightsection";
 
 /* ------------------------------------------------------------------ */
 /*  Small reusable pieces                                             */
@@ -34,7 +32,6 @@ function DualRangeSlider({ min, max, values, onChange, formatLabel }) {
 
   const lowPct = ((low - min) / (max - min)) * 100;
   const highPct = ((high - min) / (max - min)) * 100;
-
 
   return (
     <div className="pt-1">
@@ -115,26 +112,16 @@ function Leg({ time, code, arrTime, arrCode, duration, stopLabel }) {
         <div className="text-xs text-slate-400">{code}</div>
       </div>
       <div className="flex flex-1 flex-col items-center px-1">
-
-  <div className="text-[11px] text-slate-400">
-    {duration}
-  </div>
-
-  <div className="flex items-center w-full my-1">
-
-    <div className="flex-1 h-px bg-slate-300"></div>
-
-    <Plane className="mx-2 h-4 w-4 text-slate-500 rotate-90" />
-
-    <div className="flex-1 h-px bg-slate-300"></div>
-
-  </div>
-
-  <div className="text-[11px] font-medium text-rose-500">
-    {stopLabel}
-  </div>
-
-</div>
+        <div className="text-[11px] text-slate-400">{duration}</div>
+        <div className="flex items-center w-full my-1">
+          <div className="flex-1 h-px bg-slate-300"></div>
+          <Plane className="mx-2 h-4 w-4 text-slate-500 rotate-90" />
+          <div className="flex-1 h-px bg-slate-300"></div>
+        </div>
+        <div className="text-[11px] font-medium text-rose-500">
+          {stopLabel}
+        </div>
+      </div>
       <div className="w-14">
         <div className="text-sm font-semibold text-slate-800">{arrTime}</div>
         <div className="text-xs text-slate-400">{arrCode}</div>
@@ -142,12 +129,11 @@ function Leg({ time, code, arrTime, arrCode, duration, stopLabel }) {
     </div>
   );
 }
+
 const formatDuration = (minutes) => {
   if (!minutes) return "";
-
   const hrs = Math.floor(minutes / 60);
   const mins = minutes % 60;
-
   return `${hrs}h ${mins}m`;
 };
 
@@ -157,7 +143,6 @@ function FlightCard({ flight, saved, onToggleSave }) {
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-
       {/* Layover / CO2 */}
       {flight.layovers?.length > 0 && (
         <div className="flex items-center gap-2 border-b border-emerald-100 bg-emerald-50 px-4 py-2 text-xs text-emerald-700">
@@ -172,241 +157,87 @@ function FlightCard({ flight, saved, onToggleSave }) {
       )}
 
       <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
-
         {/* Airline + Flight Details */}
         <div className="flex flex-1 items-center gap-4">
-
           <img
             src={flight.airlineLogo}
             alt={flight.airline}
             className="h-10 w-10 rounded-full object-contain"
           />
-
           <div className="flex flex-col">
-
-            <h3 className="font-semibold text-slate-800">
-              {flight.airline}
-            </h3>
-
+            <h3 className="font-semibold text-slate-800">{flight.airline}</h3>
             <span className="text-sm text-slate-500">
               {flight.flightNumber}
             </span>
-
           </div>
-
         </div>
 
         {/* Journey */}
         <div className="flex flex-1 items-center justify-between">
-
           <div className="text-center">
-            <h2 className="text-lg font-bold">
-              {departureTime}
-            </h2>
-
+            <h2 className="text-lg font-bold">{departureTime}</h2>
             <p className="text-sm text-slate-500">
               {flight.departureAirport}
             </p>
           </div>
 
-         <div className="flex flex-col items-center flex-1 px-4">
-
-  <span className="text-sm text-slate-500">
-    {formatDuration(flight.duration)}
-  </span>
-
-  <div className="flex items-center w-full my-2">
-
-    <div className="flex-1 h-px bg-slate-300"></div>
-
-    <Plane className="mx-2 h-4 w-4 text-slate-500 rotate-90" />
-
-    <div className="flex-1 h-px bg-slate-300"></div>
-
-  </div>
-
-  <span className="text-xs text-red-500">
-    {flight.stops === 0
-      ? "Direct"
-      : `${flight.stops} Stop${flight.stops > 1 ? "s" : ""}`}
-  </span>
-
-</div>
-
-          <div className="text-center">
-            <h2 className="text-lg font-bold">
-              {arrivalTime}
-            </h2>
-
-            <p className="text-sm text-slate-500">
-              {flight.arrivalAirport}
-            </p>
+          <div className="flex flex-col items-center flex-1 px-4">
+            <span className="text-sm text-slate-500">
+              {formatDuration(flight.duration)}
+            </span>
+            <div className="flex items-center w-full my-2">
+              <div className="flex-1 h-px bg-slate-300"></div>
+              <Plane className="mx-2 h-4 w-4 text-slate-500 rotate-90" />
+              <div className="flex-1 h-px bg-slate-300"></div>
+            </div>
+            <span className="text-xs text-red-500">
+              {flight.stops === 0
+                ? "Direct"
+                : `${flight.stops} Stop${flight.stops > 1 ? "s" : ""}`}
+            </span>
           </div>
 
+          <div className="text-center">
+            <h2 className="text-lg font-bold">{arrivalTime}</h2>
+            <p className="text-sm text-slate-500">{flight.arrivalAirport}</p>
+          </div>
         </div>
 
         {/* Price */}
         <div className="flex w-full flex-col items-end gap-2 sm:w-44">
-
-          <FavoriteButton
-            active={saved}
-            onToggle={onToggleSave}
-          />
-
+          <FavoriteButton active={saved} onToggle={onToggleSave} />
           <div className="text-2xl font-bold text-slate-900">
             ₹{flight.price.toLocaleString("en-IN")}
           </div>
-
-          <button
-            className="w-full rounded-lg bg-teal-700 px-4 py-2 text-white hover:bg-teal-800"
-          >
+          <button className="w-full rounded-lg bg-teal-700 px-4 py-2 text-white hover:bg-teal-800">
             Select →
           </button>
-
         </div>
-
       </div>
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/*  Data                                                                */
-/* ------------------------------------------------------------------ */
-
-const AIRLINE_LOGOS = {
-  airfrance:
-    "https://images.kiwi.com/airlines/64/AF.png",
-  airtransat: "https://images.kiwi.com/airlines/64/TS.png",
-  aircanada: "https://images.kiwi.com/airlines/64/AC.png",
-  tap: "https://images.kiwi.com/airlines/64/TP.png",
-};
-
-// const FLIGHTS = [
-//   {
-//     id: "af",
-//     airline: "AIR FRANCE",
-//     logo: AIRLINE_LOGOS.airfrance,
-//     sponsored: true,
-//     headline: "A Rendez-Vous with Air France",
-//     price: "₹1,03,300",
-//     legs: [
-//       {
-//         time: "7:00 p.m.",
-//         code: "YUL",
-//         arrTime: "11:20 a.m.",
-//         arrCode: "MAD",
-//         duration: "10h 20\n1 stop CDG",
-//         stopLabel: "1 stop CDG",
-//       },
-//       {
-//         time: "10:05 a.m.",
-//         code: "MAD",
-//         arrTime: "3:00 p.m.",
-//         arrCode: "YUL",
-//         duration: "10h 55",
-//         stopLabel: "1 stop CDG",
-//       },
-//     ],
-//   },
-//   {
-//     id: "ts",
-//     airline: "Air Transat",
-//     logo: AIRLINE_LOGOS.airtransat,
-//     co2Note: "This flight emits 19% less CO2e than a typical flight on this route",
-//     price: "₹84,600",
-//     dealsFrom: "6 deals from",
-//     legs: [
-//       {
-//         time: "11:40 p.m.",
-//         code: "YUL",
-//         arrTime: "12:40 p.m.",
-//         arrCode: "MAD",
-//         duration: "7h",
-//         stopLabel: "Direct",
-//       },
-//       {
-//         time: "2:10 p.m.",
-//         code: "MAD",
-//         arrTime: "4:05 a.m.",
-//         arrCode: "YUL",
-//         duration: "7h 55",
-//         stopLabel: "Direct +1",
-//       },
-//     ],
-//   },
-//   {
-//     id: "ac",
-//     airline: "Air Canada",
-//     logo: AIRLINE_LOGOS.aircanada,
-//     co2Note: "This flight emits 31% less CO2e than a typical flight on this route",
-//     price: "₹86,300",
-//     dealsFrom: "6 deals from",
-//     legs: [
-//       {
-//         time: "5:35 p.m.",
-//         code: "YUL",
-//         arrTime: "6:40 a.m.",
-//         arrCode: "MAD",
-//         duration: "7h 05",
-//         stopLabel: "Direct +1",
-//       },
-//       {
-//         time: "12:45 p.m.",
-//         code: "MAD",
-//         arrTime: "2:55 p.m.",
-//         arrCode: "YUL",
-//         duration: "8h 10",
-//         stopLabel: "Direct",
-//       },
-//     ],
-//   },
-//   {
-//     id: "tp",
-//     airline: "TAP Air Portugal",
-//     logo: AIRLINE_LOGOS.tap,
-//     price: "₹76,200",
-//     dealsFrom: "11 deals from",
-//     legs: [
-//       {
-//         time: "10:45 p.m.",
-//         code: "YUL",
-//         arrTime: "3:20 p.m.",
-//         arrCode: "MAD",
-//         duration: "10h 35\n1 stop LIS",
-//         stopLabel: "1 stop LIS",
-//       },
-//       {
-//         time: "4:20 p.m.",
-//         code: "MAD",
-//         arrTime: "9:10 p.m.",
-//         arrCode: "YUL",
-//         duration: "10h 50",
-//         stopLabel: "1 stop LIS +1",
-//       },
-//     ],
-//   },
-// ];
-
-/* ------------------------------------------------------------------ */
 /*  Main page                                                          */
 /* ------------------------------------------------------------------ */
 
 export default function FlightBookingPage() {
-  const [stops, setStops] = useState({ direct: true, oneStop: true, twoPlus: false });
+  const [stops, setStops] = useState({
+    direct: true,
+    oneStop: true,
+    twoPlus: false,
+  });
   const [outboundRange, setOutboundRange] = useState([0, 1439]);
   const [returnRange, setReturnRange] = useState([0, 1439]);
   const [durationRange, setDurationRange] = useState([8 * 60, 34.5 * 60]);
   const [sortBy, setSortBy] = useState("best");
   const [saved, setSaved] = useState({});
   const flights = useSelector(selectFlights);
-console.log(flights);
 
-  const toggleStop = (key) =>
-    setStops((s) => ({ ...s, [key]: !s[key] }));
+  const toggleStop = (key) => setStops((s) => ({ ...s, [key]: !s[key] }));
 
-  const toggleSave = (id) =>
-    setSaved((s) => ({ ...s, [id]: !s[id] }));
+  const toggleSave = (id) => setSaved((s) => ({ ...s, [id]: !s[id] }));
 
   const formatMinutes = (mins) => {
     const h = Math.floor(mins / 60);
@@ -416,7 +247,7 @@ console.log(flights);
     return `${h12}:${m.toString().padStart(2, "0")} ${period}`;
   };
 
-  const formatDuration = (mins) => {
+  const formatDurationRange = (mins) => {
     const h = Math.floor(mins / 60);
     const m = Math.round(mins % 60);
     return m ? `${h}h ${m}m` : `${h}h`;
@@ -452,7 +283,14 @@ console.log(flights);
       `}</style>
 
       {/* Top bar */}
-      {/*  */}
+     
+
+      {/* Booking search bar — editable, sits above the results */}
+      <div className="border-b border-slate-200 bg-slate-100">
+        <div className="mx-auto max-w-7xl px-4 py-4">
+          <BookingFlightsSection />
+        </div>
+      </div>
 
       <main className="mx-auto max-w-7xl gap-6 px-4 py-6 lg:flex lg:items-start">
         {/* -------------------------------------------------- */}
@@ -549,14 +387,15 @@ console.log(flights);
               Journey duration <ChevronDown className="h-4 w-4 text-slate-400" />
             </h3>
             <p className="mb-1 text-xs text-slate-400">
-              {formatDuration(durationRange[0])} – {formatDuration(durationRange[1])}
+              {formatDurationRange(durationRange[0])} –{" "}
+              {formatDurationRange(durationRange[1])}
             </p>
             <DualRangeSlider
               min={8 * 60}
               max={34.5 * 60}
               values={durationRange}
               onChange={setDurationRange}
-              formatLabel={formatDuration}
+              formatLabel={formatDurationRange}
             />
           </div>
         </aside>
@@ -609,15 +448,15 @@ console.log(flights);
           </div>
 
           <div className="space-y-3">
-       {flights.map((flight, index) => (
-         <FlightCard
-         key={flight.bookingToken || index}
-          flight={flight}
-          saved={!!saved[flight.bookingToken]}
-         onToggleSave={() => toggleSave(flight.bookingToken)}
-        />
-     ))}
-      </div>
+            {flights.map((flight, index) => (
+              <FlightCard
+                key={flight.bookingToken || index}
+                flight={flight}
+                saved={!!saved[flight.bookingToken]}
+                onToggleSave={() => toggleSave(flight.bookingToken)}
+              />
+            ))}
+          </div>
         </section>
 
         {/* -------------------------------------------------- */}
