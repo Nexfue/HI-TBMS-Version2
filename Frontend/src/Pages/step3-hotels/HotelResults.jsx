@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { Search, Star, BedDouble, Bath, Maximize, ChevronRight, SlidersHorizontal } from 'lucide-react';
 
-import { useSelector } from "react-redux";
-import { selectHotels } from "../../Store/slices/travelSlice";
+import { selectHotels, setHotelResults } from "../../Store/slices/travelSlice";
+import { searchHotels } from "../../api/hotelApi";
+import { getFilteredHotelLocations } from "../../Data/hotelLocation";
 
 // ── Static data ──────────────────────────────────────────────────────────
 const PRICE_BANDS = [
@@ -47,6 +49,47 @@ const formatDisplayDate = (isoDate) => {
 function formatRupees(price) {
   if (!price) return 'N/A';
   return price; // API already returns "₹1,256"
+}
+
+// ── City / Location search popover (shared style with Landing page) ─────
+function LocationDropdown({ search, onSearchChange, onSelect }) {
+  const filtered = getFilteredHotelLocations(search);
+
+  return (
+    <div
+      onClick={(e) => e.stopPropagation()}
+      className="absolute top-full left-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 p-3 text-left"
+    >
+      <input
+        autoFocus
+        type="text"
+        value={search}
+        onChange={(e) => onSearchChange(e.target.value)}
+        placeholder="Search city, area or property..."
+        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+      <div className="max-h-60 overflow-y-auto">
+        {filtered.length === 0 && (
+          <p className="text-xs text-gray-400 px-2 py-3">No locations found</p>
+        )}
+        {filtered.map((item, idx) => {
+          const label = typeof item === 'string' ? item : item.city || item.name || item.label;
+          const subtext = typeof item === 'string' ? '' : item.subtext || item.country || '';
+          return (
+            <button
+              key={`${label}-${idx}`}
+              type="button"
+              onClick={() => onSelect(label)}
+              className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-gray-50"
+            >
+              <span className="block text-sm font-semibold text-gray-800">{label}</span>
+              {subtext && <span className="block text-xs text-gray-400">{subtext}</span>}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 // ── Checkbox row used across all filter groups ──────────────────────────
@@ -260,7 +303,7 @@ function RoomCard({ room }) {
 }
 
 // ── Compact search bar (no trending row, ends at Search button) ─────────
-function SearchBar({ initialCriteria, onSearch }) {
+function SearchBar({ initialCriteria, onSearch, isSearching }) {
   const today = todayISO();
   const [location, setLocation] = useState(initialCriteria?.location || 'Delhi');
   const [checkIn, setCheckIn] = useState(initialCriteria?.checkIn || today);
@@ -270,6 +313,28 @@ function SearchBar({ initialCriteria, onSearch }) {
       ? { count: initialCriteria.rooms.length, adults: initialCriteria.rooms.reduce((s, r) => s + r.adults, 0) }
       : { count: 1, adults: 2 }
   );
+
+  const [showLocationPanel, setShowLocationPanel] = useState(false);
+  const [locationSearch, setLocationSearch] = useState('');
+  const [touched, setTouched] = useState({ location: false, checkIn: false, checkOut: false });
+  const locationWrapperRef = useRef(null);
+
+  useEffect(() => {
+    const closeOnOutsideClick = (e) => {
+      if (locationWrapperRef.current && !locationWrapperRef.current.contains(e.target)) {
+        setShowLocationPanel(false);
+      }
+    };
+    document.addEventListener('click', closeOnOutsideClick);
+    return () => document.removeEventListener('click', closeOnOutsideClick);
+  }, []);
+
+  const selectLocation = (label) => {
+    setLocation(label);
+    setShowLocationPanel(false);
+    setLocationSearch('');
+    setTouched((t) => ({ ...t, location: false }));
+  };
 
   const triggerDatePicker = (id) => {
     const el = document.getElementById(id);
@@ -282,6 +347,12 @@ function SearchBar({ initialCriteria, onSearch }) {
 
   const handleSearch = (e) => {
     e.preventDefault();
+
+    if (!location || !checkIn || !checkOut || checkOut <= checkIn) {
+      setTouched({ location: true, checkIn: true, checkOut: true });
+      return;
+    }
+
     onSearch?.({
       location,
       checkIn,
@@ -298,15 +369,27 @@ function SearchBar({ initialCriteria, onSearch }) {
       <div className="grid grid-cols-1 md:grid-cols-[2fr_1.2fr_1.2fr_1.4fr_auto] divide-y md:divide-y-0 md:divide-x divide-gray-200 items-stretch">
 
         {/* City */}
-        <div className="p-3 md:p-4 text-left">
+        <div
+          ref={locationWrapperRef}
+          className="p-3 md:p-4 text-left cursor-pointer hover:bg-gray-50 transition relative"
+          onClick={(e) => {
+            e.stopPropagation();
+            setLocationSearch('');
+            setShowLocationPanel((v) => !v);
+          }}
+        >
           <p className="text-[11px] text-gray-500 font-bold uppercase tracking-wide">City, Area or Property</p>
-          <input
-            type="text"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            required
-            className="w-full text-lg font-bold text-gray-800 bg-transparent outline-none mt-1"
-          />
+          <p className={`text-lg font-bold mt-1 truncate ${location ? 'text-gray-800' : 'text-gray-300'}`}>
+            {location || 'Where are you headed?'}
+          </p>
+          {touched.location && !location && <p className="text-[11px] text-red-500 mt-1">Required</p>}
+          {showLocationPanel && (
+            <LocationDropdown
+              search={locationSearch}
+              onSearchChange={setLocationSearch}
+              onSelect={selectLocation}
+            />
+          )}
         </div>
 
         {/* Check-in */}
@@ -316,6 +399,7 @@ function SearchBar({ initialCriteria, onSearch }) {
         >
           <p className="text-[11px] text-gray-500 font-bold uppercase tracking-wide">Check-In</p>
           <p className="text-lg font-bold text-gray-800 mt-1 truncate">{formatDisplayDate(checkIn)}</p>
+          {touched.checkIn && !checkIn && <p className="text-[11px] text-red-500 mt-1">Required</p>}
           <input
             id="results-checkin"
             type="date"
@@ -325,6 +409,7 @@ function SearchBar({ initialCriteria, onSearch }) {
               const v = e.target.value;
               setCheckIn(v);
               if (checkOut <= v) setCheckOut(addDays(v, 1));
+              setTouched((t) => ({ ...t, checkIn: false }));
             }}
             className="absolute inset-0 opacity-0 cursor-pointer"
           />
@@ -337,12 +422,20 @@ function SearchBar({ initialCriteria, onSearch }) {
         >
           <p className="text-[11px] text-gray-500 font-bold uppercase tracking-wide">Check-Out</p>
           <p className="text-lg font-bold text-gray-800 mt-1 truncate">{formatDisplayDate(checkOut)}</p>
+          {touched.checkOut && (!checkOut || checkOut <= checkIn) && (
+            <p className="text-[11px] text-red-500 mt-1">
+              {checkOut ? 'Must be after Check-In' : 'Required'}
+            </p>
+          )}
           <input
             id="results-checkout"
             type="date"
             min={addDays(checkIn, 1)}
             value={checkOut}
-            onChange={(e) => setCheckOut(e.target.value)}
+            onChange={(e) => {
+              setCheckOut(e.target.value);
+              setTouched((t) => ({ ...t, checkOut: false }));
+            }}
             className="absolute inset-0 opacity-0 cursor-pointer"
           />
         </div>
@@ -359,10 +452,11 @@ function SearchBar({ initialCriteria, onSearch }) {
         <div className="p-3 md:p-4 flex items-center justify-center">
           <button
             type="submit"
-            className="w-full md:w-auto bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold text-sm px-8 py-3 rounded-xl shadow-md hover:from-blue-600 hover:to-blue-700 tracking-wide uppercase transition-all duration-200 flex items-center justify-center gap-2"
+            disabled={isSearching}
+            className="w-full md:w-auto bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold text-sm px-8 py-3 rounded-xl shadow-md hover:from-blue-600 hover:to-blue-700 tracking-wide uppercase transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <Search className="w-4 h-4" />
-            Search
+            {isSearching ? 'Searching...' : 'Search'}
           </button>
         </div>
       </div>
@@ -373,6 +467,7 @@ function SearchBar({ initialCriteria, onSearch }) {
 // ── Page ─────────────────────────────────────────────────────────────────
 export default function HotelResults() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const hotels = useSelector(selectHotels);
 
@@ -384,11 +479,37 @@ export default function HotelResults() {
     stars: [],
     ratings: [],
   });
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState(null);
 
-  // Re-run the search: pushes fresh criteria into route state so this page
-  // (and a browser refresh/back button) always reflects the current search.
-  const handleNewSearch = (newCriteria) => {
-    navigate('/hotel/results', { state: { ...newCriteria, priceBands: filters.priceBands } });
+  // Re-run the search: actually calls the hotel search API and pushes the
+  // fresh results into redux — same backend wiring as the Landing page.
+  const handleNewSearch = async (criteria) => {
+    setIsSearching(true);
+    setSearchError(null);
+
+    try {
+      const searchData = {
+        destination: criteria.location,
+        checkInDate: criteria.checkIn,
+        checkOutDate: criteria.checkOut,
+        adults: criteria.rooms[0].adults,
+        children: criteria.rooms[0].children,
+      };
+
+      const response = await searchHotels(searchData);
+
+      dispatch(setHotelResults(response.data.data));
+
+      // Keep the URL/route state in sync so refresh / back button reflect
+      // the latest search criteria too.
+      navigate('/hotel/results', { state: { ...criteria, priceBands: filters.priceBands } });
+    } catch (error) {
+      console.error(error);
+      setSearchError('Something went wrong while searching hotels. Please try again.');
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   // hotels from Redux may be undefined on first render before the API call resolves
@@ -397,7 +518,13 @@ export default function HotelResults() {
   return (
     <div className="bg-slate-50 min-h-screen font-['Inter',sans-serif]">
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <SearchBar onSearch={handleNewSearch} />
+        <SearchBar onSearch={handleNewSearch} isSearching={isSearching} />
+
+        {searchError && (
+          <p className="mt-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-2">
+            {searchError}
+          </p>
+        )}
 
         <div className="flex flex-col lg:flex-row gap-6 mt-6">
           <FilterSidebar filters={filters} setFilters={setFilters} />
@@ -406,7 +533,9 @@ export default function HotelResults() {
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h2 className="text-2xl font-black text-gray-900">Luxury Rooms &amp; Suites</h2>
-                <p className="text-sm text-gray-500 mt-1">{filteredRooms.length} properties found</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  {isSearching ? 'Searching...' : `${filteredRooms.length} properties found`}
+                </p>
               </div>
             </div>
 
@@ -416,7 +545,7 @@ export default function HotelResults() {
               ))}
             </div>
 
-            {filteredRooms.length === 0 && (
+            {!isSearching && filteredRooms.length === 0 && (
               <div className="text-center py-20 text-gray-400 text-sm">
                 No rooms match your budget. Try adjusting your filters.
               </div>

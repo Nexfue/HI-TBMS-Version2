@@ -4,7 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { ChevronDown, Check, X } from 'lucide-react';
 import { searchFlights as searchFlightsApi } from "../api/flightApi";
-import { getAirportCode } from "../Data/airports";
+import {
+  CLASS_OPTIONS,
+  getAirportCode,
+  getCityCountry,
+  getFilteredLocations,
+  getAirportSubtext,
+} from "../Data/airports";
 
 import {
   setTravelDetails,
@@ -69,7 +75,7 @@ function getDayName(dateStr) {
   return d.toLocaleDateString('en-US', { weekday: 'long' });
 }
 
-// Compact "Sat, 11 Jul 26" style used in the new booking bar
+// Compact "Sat, 11 Jul 26" style used in the booking bar
 function formatShortDate(dateStr) {
   if (!dateStr) return 'Select date';
   const d = new Date(dateStr);
@@ -83,40 +89,14 @@ function formatShortDate(dateStr) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  City / airport lookup                                              */
-/* ------------------------------------------------------------------ */
-
-const CITY_LIST = [
-  { city: 'Delhi', subtext: 'DEL, Delhi Airport India' },
-  { city: 'Bangkok', subtext: 'BKK, Suvarnabhumi Airport Thailand' },
-  { city: 'Bengaluru', subtext: 'BLR, Bengaluru International Airport India' },
-  { city: 'Mumbai', subtext: 'BOM, Chhatrapati Shivaji Airport India' },
-  { city: 'Singapore', subtext: 'SIN, Changi Airport Singapore' },
-  { city: 'Dubai', subtext: 'DXB, Dubai International Airport UAE' },
-  { city: 'Male', subtext: 'MLE, Velana International Airport Maldives' },
-];
-
-function getAirportSubtext(city) {
-  return CITY_LIST.find((c) => c.city === city)?.subtext || city;
-}
-
-// Best-effort "City, Country" label for the compact bar (e.g. "Bengaluru, India")
-function getCityCountry(city) {
-  if (!city) return '';
-  const subtext = getAirportSubtext(city);
-  const parts = subtext.split(' ');
-  const country = parts[parts.length - 1];
-  return country ? `${city}, ${country}` : city;
-}
-
-/* ------------------------------------------------------------------ */
 /*  LocationDropdown                                                    */
 /* ------------------------------------------------------------------ */
 
 function LocationDropdown({ search, onSearchChange, onSelect, placeholder }) {
-  const filtered = CITY_LIST.filter((c) =>
-    c.city.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = getFilteredLocations(search).map((city) => ({
+    city,
+    subtext: getAirportSubtext(city),
+  }));
 
   return (
     <div
@@ -227,7 +207,7 @@ function TravellersPanel({
 }
 
 /* ------------------------------------------------------------------ */
-/*  TripTypeDropdown — new, powers the compact "TRIP TYPE" field       */
+/*  TripTypeDropdown — powers the compact "TRIP TYPE" field            */
 /* ------------------------------------------------------------------ */
 
 function TripTypeDropdown({ value, onChange, isOpen, onToggle }) {
@@ -318,7 +298,7 @@ export default function BookingFlightsSection() {
   const bookingSectionRef = useRef(null);
   const today = todayISO();
 
-  const [tripType, setTripType] = useState('round-trip'); // 'one-way' | 'round-trip' | 'multi-city'
+  const [tripType, setTripType] = useState('one-way'); // 'one-way' | 'round-trip' | 'multi-city'
   const [from, setFrom] = useState('Bengaluru');
   const [to, setTo] = useState('Male');
   const [departureDate, setDepartureDate] = useState(today);
@@ -496,6 +476,14 @@ export default function BookingFlightsSection() {
     return `${travelers} ${label}, ${getClassLabel()}`;
   };
 
+  /* ------------------------------------------------------------------ */
+  /*  Submit handler — this is the "backend" wiring:                    */
+  /*  1) validates the right fields depending on trip type              */
+  /*  2) calls the flight search API                                    */
+  /*  3) pushes the raw results into redux (setFlights)                 */
+  /*  4) pushes the searched trip details into redux (setTravelDetails) */
+  /*  5) navigates to the results page                                  */
+  /* ------------------------------------------------------------------ */
   const handleSearch = async (e) => {
     e.preventDefault();
 
@@ -516,7 +504,7 @@ export default function BookingFlightsSection() {
         from: getAirportCode(isMultiCity ? multiCitySegments[0].from : from),
         to: getAirportCode(isMultiCity ? multiCitySegments[multiCitySegments.length - 1].to : to),
         departureDate: isMultiCity ? multiCitySegments[0].departureDate : departureDate,
-        returnDate,
+        returnDate: isRoundTrip ? returnDate : '',
         tripType,
         adults: travelers,
         children: 0,

@@ -3,7 +3,12 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { searchFlights as searchFlightsApi } from "../api/flightApi";
-import { getAirportCode } from "../Data/airports";
+import {
+  CLASS_OPTIONS ,
+    getAirportCode ,
+  getFilteredLocations,
+  getAirportSubtext,
+} from "../Data/airports";
 
 
 import {
@@ -79,18 +84,7 @@ function getDayName(dateStr) {
 /*  ⚠️ Placeholder data — swap in your real airport list/API           */
 /* ------------------------------------------------------------------ */
 
-const CITY_LIST = [
-  { city: 'Delhi', subtext: 'DEL, Delhi Airport India' },
-  { city: 'Bangkok', subtext: 'BKK, Suvarnabhumi Airport Thailand' },
-  { city: 'Bengaluru', subtext: 'BLR, Bengaluru International Airport' },
-  { city: 'Mumbai', subtext: 'BOM, Chhatrapati Shivaji Airport' },
-  { city: 'Singapore', subtext: 'SIN, Changi Airport Singapore' },
-  { city: 'Dubai', subtext: 'DXB, Dubai International Airport' },
-];
 
-function getAirportSubtext(city) {
-  return CITY_LIST.find((c) => c.city === city)?.subtext || city;
-}
 
 /* ------------------------------------------------------------------ */
 /*  LocationDropdown                                                    */
@@ -98,9 +92,11 @@ function getAirportSubtext(city) {
 /* ------------------------------------------------------------------ */
 
 function LocationDropdown({ search, onSearchChange, onSelect, placeholder }) {
-  const filtered = CITY_LIST.filter((c) =>
-    c.city.toLowerCase().includes(search.toLowerCase())
-  );
+  
+const filtered = getFilteredLocations(search).map((city) => ({
+  city,
+  subtext: getAirportSubtext(city),
+}));
 
   return (
     <div

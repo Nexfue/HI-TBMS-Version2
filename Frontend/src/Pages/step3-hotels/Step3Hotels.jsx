@@ -12,6 +12,7 @@ import { useDispatch } from "react-redux";
 import { setHotelResults } from "../../Store/slices/travelSlice";
 
 import TravelSections from '../../Components/Component';
+import { getFilteredHotelLocations } from "../../Data/hotelLocation";
 
 // ── Small shared icon ────────────────────────────────────────────────────
 const PinIcon = ({ className }) => (
@@ -56,6 +57,50 @@ const dayName = (isoDate) => {
   if (!isoDate) return '';
   return new Date(isoDate).toLocaleDateString('en-IN', { weekday: 'long' });
 };
+
+// ── City / Location search popover ──────────────────────────────────────────
+function LocationDropdown({ search, onSearchChange, onSelect }) {
+  const filtered = getFilteredHotelLocations(search);
+
+  return (
+    <div
+      onClick={(e) => e.stopPropagation()}
+      className="absolute top-full left-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 p-3 text-left"
+    >
+      <input
+        autoFocus
+        type="text"
+        value={search}
+        onChange={(e) => onSearchChange(e.target.value)}
+        placeholder="Search city, property or location..."
+        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+      <div className="max-h-60 overflow-y-auto">
+        {filtered.length === 0 && (
+          <p className="text-xs text-gray-400 px-2 py-3">No locations found</p>
+        )}
+        {filtered.map((item, idx) => {
+          const label = typeof item === 'string' ? item : item.city || item.name || item.label;
+          const subtext = typeof item === 'string' ? '' : item.subtext || item.country || '';
+          return (
+            <button
+              key={`${label}-${idx}`}
+              type="button"
+              onClick={() => onSelect(label)}
+              className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-gray-50 flex items-start gap-2"
+            >
+              <PinIcon className="w-4 h-4 text-gray-300 mt-0.5 flex-shrink-0" />
+              <span>
+                <span className="block text-sm font-semibold text-gray-800">{label}</span>
+                {subtext && <span className="block text-xs text-gray-400">{subtext}</span>}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // ── Rooms & Guests popover ─────────────────────────────────────────────────
 function RoomsGuestsPopover({ rooms, onChange, onClose }) {
@@ -219,20 +264,30 @@ export default function Landing() {
   const [selectedPriceBands, setSelectedPriceBands] = useState([]);
   
   // Panel triggers
+  const [showLocationPanel, setShowLocationPanel] = useState(false);
+  const [locationSearch, setLocationSearch] = useState('');
   const [showRoomsPanel, setShowRoomsPanel] = useState(false);
   const [showPricePanel, setShowPricePanel] = useState(false);
 
+  const locationWrapperRef = useRef(null);
   const roomsWrapperRef = useRef(null);
   const priceWrapperRef = useRef(null);
 
   useEffect(() => {
     const closeOnOutsideClick = (e) => {
+      if (locationWrapperRef.current && !locationWrapperRef.current.contains(e.target)) setShowLocationPanel(false);
       if (roomsWrapperRef.current && !roomsWrapperRef.current.contains(e.target)) setShowRoomsPanel(false);
       if (priceWrapperRef.current && !priceWrapperRef.current.contains(e.target)) setShowPricePanel(false);
     };
     document.addEventListener('click', closeOnOutsideClick);
     return () => document.removeEventListener('click', closeOnOutsideClick);
   }, []);
+
+  const selectLocation = (label) => {
+    setLocation(label);
+    setShowLocationPanel(false);
+    setLocationSearch('');
+  };
 
   const totalAdults = rooms.reduce((s, r) => s + r.adults, 0);
 
@@ -329,17 +384,29 @@ console.log(rooms[0]);
             <div className="grid grid-cols-1 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-gray-200">
               
               {/* Box 1: City & Location input */}
-              <div className="p-2 md:p-5 text-left cursor-pointer hover:bg-gray-50 transition rounded-l-xl">
+              <div
+                ref={locationWrapperRef}
+                className="p-2 md:p-5 text-left cursor-pointer hover:bg-gray-50 transition rounded-l-xl relative"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLocationSearch('');
+                  setShowLocationPanel((v) => !v);
+                  setShowRoomsPanel(false);
+                  setShowPricePanel(false);
+                }}
+              >
                 <p className="text-xs text-gray-500 font-medium">City, Property Name Or Location</p>
-                <input 
-                  type="text" 
-                  value={location} 
-                  onChange={(e) => setLocation(e.target.value)}
-                  required
-                  placeholder="Where are you headed?"
-                  className="w-full text-2xl font-bold text-gray-800 bg-transparent outline-none mt-2 placeholder:font-normal placeholder:text-gray-300"
-                />
+                <p className={`text-2xl font-bold mt-2 truncate ${location ? 'text-gray-800' : 'text-gray-300'}`}>
+                  {location || 'Where are you headed?'}
+                </p>
                 <p className="text-xs text-gray-400 mt-1">India</p>
+                {showLocationPanel && (
+                  <LocationDropdown
+                    search={locationSearch}
+                    onSearchChange={setLocationSearch}
+                    onSelect={selectLocation}
+                  />
+                )}
               </div>
 
               {/* Box 2: Check-In Date */}
