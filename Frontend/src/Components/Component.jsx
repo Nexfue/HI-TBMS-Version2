@@ -211,7 +211,7 @@ function WhyChoose() {
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
         <div>
           <h2 className="mb-8 font-serif text-2xl font-extrabold text-slate-900 sm:text-3xl">
-            Why Choose <span className="italic text-blue-600">Wanderly?</span>
+            Why Choose <span className="italic text-blue-600">Holiday Infinite?</span>
           </h2>
           <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
             {WHY_CHOOSE.map((w) => {

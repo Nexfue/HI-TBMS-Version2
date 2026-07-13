@@ -39,7 +39,7 @@ export function Header() {
         <Plane className="h-7 w-7 -rotate-45 text-blue-600" />
         <span>
           <span className="block font-serif text-xl font-bold italic text-slate-800">
-            Wanderly
+            Holiday Infinite
           </span>
           <span className="block text-[9px] font-semibold tracking-[0.2em] text-slate-400">
             TRAVEL THE WORLD
