@@ -11,12 +11,8 @@ import {
   Car,
   Leaf,
 } from "lucide-react";
-
 import BookingFlightsSection from "../../Components/BookingFlightsection";
-
-/* ------------------------------------------------------------------ */
-/*  Small reusable pieces                                             */
-/* ------------------------------------------------------------------ */
+import { useLocation } from "react-router-dom";
 
 function DualRangeSlider({ min, max, values, onChange, formatLabel }) {
   const [low, high] = values;
@@ -207,7 +203,7 @@ function FlightCard({ flight, saved, onToggleSave }) {
         <div className="flex w-full flex-col items-end gap-2 sm:w-44">
           <FavoriteButton active={saved} onToggle={onToggleSave} />
           <div className="text-2xl font-bold text-slate-900">
-            ₹{flight.price.toLocaleString("en-IN")}
+            ₹{(flight.price || 4999).toLocaleString("en-IN")}
           </div>
           <button className="w-full rounded-lg bg-teal-700 px-4 py-2 text-white hover:bg-teal-800">
             Select →
@@ -234,6 +230,10 @@ export default function FlightBookingPage() {
   const [sortBy, setSortBy] = useState("best");
   const [saved, setSaved] = useState({});
   const flights = useSelector(selectFlights);
+
+  const location = useLocation();
+  const { searchData } = location.state || {};
+  console.log("FlightResults searchData:", searchData);
 
   const toggleStop = (key) => setStops((s) => ({ ...s, [key]: !s[key] }));
 
@@ -282,13 +282,10 @@ export default function FlightBookingPage() {
         .range-thumb::-moz-range-track { background: transparent; }
       `}</style>
 
-      {/* Top bar */}
-     
-
       {/* Booking search bar — editable, sits above the results */}
       <div className="border-b border-slate-200 bg-slate-100">
         <div className="mx-auto max-w-7xl px-4 py-4">
-          <BookingFlightsSection />
+          <BookingFlightsSection searchData={searchData} />
         </div>
       </div>
 

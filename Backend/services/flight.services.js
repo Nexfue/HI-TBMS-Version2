@@ -42,7 +42,11 @@ const searchFlights = async (searchData) => {
         const response = await axios.get("https://serpapi.com/search", {
             params
         });
-console.log("Keys:", Object.keys(response.data));
+        
+console.log(JSON.stringify(response.data, null, 2));
+console.log("========== SERP API RESPONSE ==========");
+console.log(response.data);
+console.log("=======================================");
 
 const flightList =
   response.data.best_flights ||
@@ -52,6 +56,7 @@ const flightList =
 const flights = flightList.map((flight) => {
     const firstFlight = flight.flights[0];
     const lastFlight = flight.flights[flight.flights.length - 1];
+    console.log(flight.flights);
 
     return {
         airline: firstFlight.airline,

@@ -1,6 +1,6 @@
 // components/BookingFlights.jsx
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate , useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { ChevronDown, Check, X } from 'lucide-react';
 import { searchFlights as searchFlightsApi } from "../api/flightApi";
@@ -9,7 +9,8 @@ import {
   getAirportCode,
   getCityCountry,
   getFilteredLocations,
-  getAirportSubtext,
+  getAirportSubtext, 
+  getCityFromCode
 } from "../Data/airports";
 
 import {
@@ -297,11 +298,18 @@ export default function BookingFlightsSection() {
   const dispatch = useDispatch();
   const bookingSectionRef = useRef(null);
   const today = todayISO();
+const location = useLocation();
+const { searchData } = location.state || {};
+console.log(searchData);
 
-  const [tripType, setTripType] = useState('one-way'); // 'one-way' | 'round-trip' | 'multi-city'
-  const [from, setFrom] = useState('Bengaluru');
-  const [to, setTo] = useState('Male');
-  const [departureDate, setDepartureDate] = useState(today);
+ 
+
+const [tripType, setTripType] = useState('one-way'); // 'one-way' | 'round-trip' | 'multi-city' 
+const [from, setFrom] = useState(searchData?.from || "Delhi ");
+const [to, setTo] = useState(searchData?.to || "Bangkok");
+const [departureDate, setDepartureDate] = useState(
+  searchData?.departureDate || todayISO()
+);
   const [returnDate, setReturnDate] = useState('');
   const [travelers, setTravelers] = useState(2);
   const [travelClass, setTravelClass] = useState('economy');
@@ -335,12 +343,23 @@ export default function BookingFlightsSection() {
     setActiveMCField(null);
     setActiveMCIndex(-1);
   };
+ useEffect(() => {
+  if (!searchData) return;
+
+  setFrom(searchData.fromCity || searchData.from || "");
+  setTo(searchData.toCity || searchData.to || "");
+  setDepartureDate(searchData.departureDate || todayISO());
+  setReturnDate(searchData.returnDate || "");
+  setTripType(searchData.tripType || "one-way");
+  setTravelers(searchData.adults ?? 1);
+  setTravelClass(searchData.travelClass || "economy");
+}, [searchData]);
 
   useEffect(() => {
     document.addEventListener('click', closeAllPopovers);
     return () => document.removeEventListener('click', closeAllPopovers);
   }, []);
-
+  
   useEffect(() => {
     setMultiCitySegments((segs) => {
       if (!segs[0]) return segs;
@@ -475,6 +494,7 @@ export default function BookingFlightsSection() {
     const label = travelers === 1 ? 'Adult' : 'Adults';
     return `${travelers} ${label}, ${getClassLabel()}`;
   };
+  
 
   /* ------------------------------------------------------------------ */
   /*  Submit handler — this is the "backend" wiring:                    */

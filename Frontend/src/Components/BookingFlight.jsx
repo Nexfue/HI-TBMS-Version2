@@ -408,61 +408,61 @@ export default function BookingFlights() {
     return 'Economy/Premium Economy';
   };
 
-  const searchFlights = (e) => {
-    e.preventDefault();
+  // const searchFlights = (e) => {
+  //   e.preventDefault();
 
-    if (isMultiCity) {
-      const segs = multiCitySegments.map((s) => ({
-        from: s.from || '',
-        to: s.to || '',
-        departureDate: s.departureDate || '',
-      }));
+  //   if (isMultiCity) {
+  //     const segs = multiCitySegments.map((s) => ({
+  //       from: s.from || '',
+  //       to: s.to || '',
+  //       departureDate: s.departureDate || '',
+  //     }));
 
-      if (!segs.every((s) => s.from && s.to && s.departureDate)) return;
+  //     if (!segs.every((s) => s.from && s.to && s.departureDate)) return;
 
-      dispatch(
-        setTravelDetails({
-          name: '',
-          email: '',
-          tripType: 'multi-city',
-          from: segs[0].from,
-          to: segs[segs.length - 1].to,
-          departureDate: new Date(segs[0].departureDate).toISOString(),
-          returnDate: '',
-          travelers,
-          travelClass,
-          multiCitySegments: segs.map((s) => ({
-            from: s.from,
-            to: s.to,
-            departureDate: new Date(s.departureDate).toISOString(),
-          })),
-        })
-      );
-      navigate('/search-flights');
-      return;
-    }
+  //     dispatch(
+  //       setTravelDetails({
+  //         name: '',
+  //         email: '',
+  //         tripType: 'multi-city',
+  //         from: segs[0].from,
+  //         to: segs[segs.length - 1].to,
+  //         departureDate: new Date(segs[0].departureDate).toISOString(),
+  //         returnDate: '',
+  //         travelers,
+  //         travelClass,
+  //         multiCitySegments: segs.map((s) => ({
+  //           from: s.from,
+  //           to: s.to,
+  //           departureDate: new Date(s.departureDate).toISOString(),
+  //         })),
+  //       })
+  //     );
+  //     navigate('/search-flights');
+  //     return;
+  //   }
 
-    if (!from || !to || !departureDate) {
-      setTouched({ from: true, to: true });
-      return;
-    }
+  //   if (!from || !to || !departureDate) {
+  //     setTouched({ from: true, to: true });
+  //     return;
+  //   }
 
-    const hasReturn = isRoundTrip && !!returnDate;
-    dispatch(
-      setTravelDetails({
-        name: '',
-        email: '',
-        tripType: hasReturn ? 'round-trip' : 'one-way',
-        from,
-        to,
-        departureDate: new Date(departureDate).toISOString(),
-        returnDate: hasReturn ? new Date(returnDate).toISOString() : '',
-        travelers,
-        travelClass,
-      })
-    );
-    navigate('/search-flights');
-  };
+  //   const hasReturn = isRoundTrip && !!returnDate;
+  //   dispatch(
+  //     setTravelDetails({
+  //       name: '',
+  //       email: '',
+  //       tripType: hasReturn ? 'round-trip' : 'one-way',
+  //       from,
+  //       to,
+  //       departureDate: new Date(departureDate).toISOString(),
+  //       returnDate: hasReturn ? new Date(returnDate).toISOString() : '',
+  //       travelers,
+  //       travelClass,
+  //     })
+  //   );
+  //   navigate('/search-flights');
+  // };
   const handleSearch = async (e) => {
   e.preventDefault();
 
@@ -489,7 +489,16 @@ console.log(response.data);
 dispatch(setFlights(response.data.data));
 console.log("Flights to Redux:", response.data.data);
 // Go to search results page
-navigate("/search-flights");
+navigate("/search-flights", {
+  state: {
+    searchData: {
+      ...searchData,
+      fromCity: from,
+      toCity: to,
+    },
+    flights: response.data.data,
+  },
+});
 console.log(response.data.data);
   // Later:
   // dispatch(setFlights(response.data.data));
@@ -499,6 +508,7 @@ console.log(response.data.data);
   console.error(error);
 };
   }
+  
 
   return (
     <section ref={bookingSectionRef} className="max-w-7xl mx-auto px-4 mt-2 relative z-20">

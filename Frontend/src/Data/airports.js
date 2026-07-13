@@ -137,3 +137,10 @@ export function getFilteredLocationsBySection(search) {
     domestic: all.filter((c) => AIRPORT_MAP[c]?.country === 'India'),
   };
 }
+export function getCityFromCode(code) {
+  const city = Object.keys(AIRPORT_MAP).find(
+    (key) => AIRPORT_MAP[key].code === code
+  );
+
+  return city || code;
+}

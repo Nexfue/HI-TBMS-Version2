@@ -3,7 +3,7 @@ import { Routes, Route } from "react-router-dom";
 import { store } from './Store/store';
 
 import Landing from "./Pages/landing/Landing";
-import Step1TravelDetails from "./Pages/step1-Travel-details/Step1Traveldetails";
+
 import Step2Flights from "./Pages/step2-Flight/Step2FlightsResult"
 import Step3Hotels from "./Pages/step3-hotels/Step3Hotels";
 import HotelResults from './Pages/step3-hotels/HotelResults'; 
@@ -19,7 +19,6 @@ function App() {
        <ScrollToTop />
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/step1" element={<Step1TravelDetails />} />
         <Route path="/search-flights" element={<Step2Flights />} />
         <Route path="/hotel" element={<Step3Hotels />} />
         <Route path="/hotel/results" element={<HotelResults />} />
