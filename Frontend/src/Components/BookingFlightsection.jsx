@@ -496,14 +496,6 @@ const [departureDate, setDepartureDate] = useState(
   };
   
 
-  /* ------------------------------------------------------------------ */
-  /*  Submit handler — this is the "backend" wiring:                    */
-  /*  1) validates the right fields depending on trip type              */
-  /*  2) calls the flight search API                                    */
-  /*  3) pushes the raw results into redux (setFlights)                 */
-  /*  4) pushes the searched trip details into redux (setTravelDetails) */
-  /*  5) navigates to the results page                                  */
-  /* ------------------------------------------------------------------ */
   const handleSearch = async (e) => {
     e.preventDefault();
 

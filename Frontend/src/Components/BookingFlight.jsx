@@ -14,6 +14,7 @@ import {
 import {
   setTravelDetails,
   setFlights,
+
 } from "../Store/slices/travelSlice";
 
 
@@ -408,107 +409,54 @@ export default function BookingFlights() {
     return 'Economy/Premium Economy';
   };
 
-  // const searchFlights = (e) => {
-  //   e.preventDefault();
-
-  //   if (isMultiCity) {
-  //     const segs = multiCitySegments.map((s) => ({
-  //       from: s.from || '',
-  //       to: s.to || '',
-  //       departureDate: s.departureDate || '',
-  //     }));
-
-  //     if (!segs.every((s) => s.from && s.to && s.departureDate)) return;
-
-  //     dispatch(
-  //       setTravelDetails({
-  //         name: '',
-  //         email: '',
-  //         tripType: 'multi-city',
-  //         from: segs[0].from,
-  //         to: segs[segs.length - 1].to,
-  //         departureDate: new Date(segs[0].departureDate).toISOString(),
-  //         returnDate: '',
-  //         travelers,
-  //         travelClass,
-  //         multiCitySegments: segs.map((s) => ({
-  //           from: s.from,
-  //           to: s.to,
-  //           departureDate: new Date(s.departureDate).toISOString(),
-  //         })),
-  //       })
-  //     );
-  //     navigate('/search-flights');
-  //     return;
-  //   }
-
-  //   if (!from || !to || !departureDate) {
-  //     setTouched({ from: true, to: true });
-  //     return;
-  //   }
-
-  //   const hasReturn = isRoundTrip && !!returnDate;
-  //   dispatch(
-  //     setTravelDetails({
-  //       name: '',
-  //       email: '',
-  //       tripType: hasReturn ? 'round-trip' : 'one-way',
-  //       from,
-  //       to,
-  //       departureDate: new Date(departureDate).toISOString(),
-  //       returnDate: hasReturn ? new Date(returnDate).toISOString() : '',
-  //       travelers,
-  //       travelClass,
-  //     })
-  //   );
-  //   navigate('/search-flights');
-  // };
-  const handleSearch = async (e) => {
+ 
+ 
+ //console.log("Search button clicked");
+const handleSearch = async (e) => {
   e.preventDefault();
 
   try {
-  const searchData = {
-  from: getAirportCode(from),
-  to: getAirportCode(to),
-  departureDate,
-  returnDate,
-  tripType,
-  adults: travelers,
-  children: 0,
-  travelClass,
-};
-console.log(searchData);
-
-  const response = await searchFlightsApi(searchData);
+    const searchData = {
+      from: getAirportCode(from),
+      to: getAirportCode(to),
+      departureDate,
+      returnDate,
+      tripType,
+      adults: travelers,
+      children: 0,
+      travelClass,
+    };
 
 
-console.log("Connected ✅");
-console.log(response.data);
 
-// Save all flights in Redux
-dispatch(setFlights(response.data.data));
-console.log("Flights to Redux:", response.data.data);
-// Go to search results page
-navigate("/search-flights", {
-  state: {
-    searchData: {
-      ...searchData,
-      fromCity: from,
-      toCity: to,
-    },
-    flights: response.data.data,
-  },
-});
-console.log(response.data.data);
-  // Later:
-  // dispatch(setFlights(response.data.data));
-  // navigate("/flights");
+    const response = await searchFlightsApi(searchData);
 
-} catch (error) {
-  console.error(error);
-};
+
+    dispatch(setFlights(response.data.data));
+
+   
+
+    navigate("/search-flights", {
+      state: {
+        searchData: {
+          ...searchData,
+          fromCity: from,
+          toCity: to,
+        },
+        flights: response.data.data,
+      },
+    });
+
+  } catch (error) {
+    console.error(error);
   }
-  
+};
+//console.log(response.data.data);
+//    console.log({
+//   departureDate,
+//   returnDate,
+//   tripType,
+// });
 
   return (
     <section ref={bookingSectionRef} className="max-w-7xl mx-auto px-4 mt-2 relative z-20">

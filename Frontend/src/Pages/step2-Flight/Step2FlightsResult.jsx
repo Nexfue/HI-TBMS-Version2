@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import BookingFlightsSection from "../../Components/BookingFlightsection";
 import { useLocation } from "react-router-dom";
+import RoundTripResults from "../../Components/RoundTrip";
 
 function DualRangeSlider({ min, max, values, onChange, formatLabel }) {
   const [low, high] = values;
@@ -235,6 +236,10 @@ export default function FlightBookingPage() {
   const { searchData } = location.state || {};
   console.log("FlightResults searchData:", searchData);
 
+if (searchData?.tripType === "round-trip") {
+  return <RoundTripResults searchData={searchData} />;
+}
+
   const toggleStop = (key) => setStops((s) => ({ ...s, [key]: !s[key] }));
 
   const toggleSave = (id) => setSaved((s) => ({ ...s, [id]: !s[id] }));
@@ -252,6 +257,9 @@ export default function FlightBookingPage() {
     const m = Math.round(mins % 60);
     return m ? `${h}h ${m}m` : `${h}h`;
   };
+  const flightList = Array.isArray(flights)
+  ? flights
+  : flights?.onward || []; 
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -445,7 +453,7 @@ export default function FlightBookingPage() {
           </div>
 
           <div className="space-y-3">
-            {flights.map((flight, index) => (
+              {flightList.map((flight, index) => ( 
               <FlightCard
                 key={flight.bookingToken || index}
                 flight={flight}

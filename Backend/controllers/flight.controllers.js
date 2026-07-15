@@ -22,6 +22,32 @@ const searchFlights = async (req, res) => {
     }
 };
 
+const searchReturnFlights = async (req, res) => {
+    try {
+
+        console.log("Return Request:", req.body);
+
+        const flights = await flightService.searchReturnFlights(req.body);
+
+        res.status(200).json({
+            success: true,
+            data: flights
+        });
+
+    } catch (error) {
+
+        console.log(error.response?.data);
+        console.log(error.message);
+
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
+    }
+};
+
 module.exports = {
-    searchFlights
+    searchFlights , 
+    searchReturnFlights ,
 };

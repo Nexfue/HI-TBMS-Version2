@@ -9,5 +9,9 @@ router.post(
     validateFlightSearch,
     flightController.searchFlights
 );
+router.post(
+    "/return-search",
+    flightController.searchReturnFlights
+);
 
 module.exports = router;
