@@ -83,7 +83,10 @@ function FlightLegRow({ label, leg }) {
       <div className="w-14 shrink-0 text-xs font-medium text-slate-400">
         {label}
       </div>
-      <AirlineLogo airline={leg.airline} logo={leg.logo} />
+    <AirlineLogo
+  airline={leg?.airline}
+  logo={leg?.airlineLogo}
+/>
       <div className="w-36 shrink-0">
         <div className="text-sm font-semibold text-slate-800">
           {leg.airline}
@@ -137,7 +140,7 @@ function FlightCard({ flight, onLock }) {
     setLocked(true);
     onLock?.(flight);
   };
-
+//console.log("First flight:", flights[0]);
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
       <div className="px-4 sm:px-5 pt-3 divide-y divide-slate-100">
@@ -325,44 +328,42 @@ function SkeletonCard() {
 }
 
 export default function RoundTripResults({
-  searchData,
   onLockPrice,
 }) {
   const dispatch = useDispatch();
+
+  // Redux
   const flights = useSelector(selectFlights);
   const travelDetails = useSelector(selectTravelDetails);
 
- 
+  console.log("Travel Details:", travelDetails);
+  console.log("Redux Flights:", flights);
 
-  console.log("RoundTrip searchData:", searchData);
-  console.log("Redux flights:", flights);
-
-
+  // Travel Details
   const resolvedOrigin =
-    searchData?.fromCity ||
-    searchData?.from ||
-    travelDetails?.from;
+    travelDetails?.fromCity ||
+    travelDetails?.from ||
+    "—";
 
   const resolvedDestination =
-    searchData?.toCity ||
-    searchData?.to ||
-    travelDetails?.to;
+    travelDetails?.toCity ||
+    travelDetails?.to ||
+    "—";
 
   const departureDate =
-    searchData?.departureDate ||
-    travelDetails?.departureDate;
+    travelDetails?.departureDate || "";
 
   const returnDate =
-    searchData?.returnDate ||
-    travelDetails?.returnDate;
+    travelDetails?.returnDate || "";
 
   const travelers =
-    searchData?.adults ||
+    travelDetails?.adults ||
     travelDetails?.travelers ||
     1;
 
+  // UI State
   const [sort, setSort] = useState("popular");
- const [status] = useState("succeeded");
+  const [status] = useState("succeeded");
   const [error, setError] = useState(null);
   
 

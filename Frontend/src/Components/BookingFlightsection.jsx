@@ -1,6 +1,6 @@
 // components/BookingFlights.jsx
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate , useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { ChevronDown, Check, X } from 'lucide-react';
 import { searchFlights as searchFlightsApi } from "../api/flightApi";
@@ -9,7 +9,7 @@ import {
   getAirportCode,
   getCityCountry,
   getFilteredLocations,
-  getAirportSubtext, 
+  getAirportSubtext,
   getCityFromCode
 } from "../Data/airports";
 
@@ -291,29 +291,36 @@ const FARE_OPTIONS = [
 
 /* ------------------------------------------------------------------ */
 /*  Main BookingFlights component                                      */
+/*                                                                      */
+/*  FIX #1: this component now actually ACCEPTS the `searchData` prop  */
+/*  the parent passes down, and uses it as a fallback when             */
+/*  `location.state.searchData` isn't present (e.g. right after a      */
+/*  navigate() call that didn't carry state).                          */
 /* ------------------------------------------------------------------ */
 
-export default function BookingFlightsSection() {
+export default function BookingFlightsSection({ searchData: searchDataProp }) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const bookingSectionRef = useRef(null);
   const today = todayISO();
-const location = useLocation();
-const { searchData } = location.state || {};
-console.log(searchData);
 
- 
+  const location = useLocation();
+  // FIX #1 (cont.): prefer router state, fall back to the prop from the parent.
+  const searchData = location.state?.searchData || searchDataProp;
 
-const [tripType, setTripType] = useState('one-way'); // 'one-way' | 'round-trip' | 'multi-city' 
-const [from, setFrom] = useState(searchData?.from || "Delhi ");
-const [to, setTo] = useState(searchData?.to || "Bangkok");
-const [departureDate, setDepartureDate] = useState(
-  searchData?.departureDate || todayISO()
-);
+  const [tripType, setTripType] = useState('one-way'); // 'one-way' | 'round-trip' | 'multi-city'
+  // FIX #3: removed trailing space in the "Delhi" default — a trailing
+  // space could fail to match in getAirportCode() and silently send
+  // `from: undefined` to the search API.
+  const [from, setFrom] = useState(searchData?.from || "Delhi");
+  const [to, setTo] = useState(searchData?.to || "Bangkok");
+  const [departureDate, setDepartureDate] = useState(
+    searchData?.departureDate || todayISO()
+  );
   const [returnDate, setReturnDate] = useState('');
   const [travelers, setTravelers] = useState(2);
   const [travelClass, setTravelClass] = useState('economy');
-  const [touched, setTouched] = useState({ from: false, to: false });
+  const [touched, setTouched] = useState({ from: false, to: false, returnDate: false });
   const [specialFare, setSpecialFare] = useState('regular');
   const [priceDropProtection, setPriceDropProtection] = useState(false);
   const [multiCitySegments, setMultiCitySegments] = useState([
@@ -331,6 +338,11 @@ const [departureDate, setDepartureDate] = useState(
   const [activeMCIndex, setActiveMCIndex] = useState(-1);
   const [mcSearch, setMcSearch] = useState('');
 
+  // FIX #5: search is now async-aware so the UI can show a spinner / disable
+  // the button, and surface errors instead of silently swallowing them.
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState('');
+
   const isRoundTrip = tripType === 'round-trip';
   const isMultiCity = tripType === 'multi-city';
   const minReturnDate = departureDate || today;
@@ -343,23 +355,24 @@ const [departureDate, setDepartureDate] = useState(
     setActiveMCField(null);
     setActiveMCIndex(-1);
   };
- useEffect(() => {
-  if (!searchData) return;
 
-  setFrom(searchData.fromCity || searchData.from || "");
-  setTo(searchData.toCity || searchData.to || "");
-  setDepartureDate(searchData.departureDate || todayISO());
-  setReturnDate(searchData.returnDate || "");
-  setTripType(searchData.tripType || "one-way");
-  setTravelers(searchData.adults ?? 1);
-  setTravelClass(searchData.travelClass || "economy");
-}, [searchData]);
+  useEffect(() => {
+    if (!searchData) return;
+
+    setFrom(searchData.fromCity || searchData.from || "");
+    setTo(searchData.toCity || searchData.to || "");
+    setDepartureDate(searchData.departureDate || todayISO());
+    setReturnDate(searchData.returnDate || "");
+    setTripType(searchData.tripType || "one-way");
+    setTravelers(searchData.adults ?? 1);
+    setTravelClass(searchData.travelClass || "economy");
+  }, [searchData]);
 
   useEffect(() => {
     document.addEventListener('click', closeAllPopovers);
     return () => document.removeEventListener('click', closeAllPopovers);
   }, []);
-  
+
   useEffect(() => {
     setMultiCitySegments((segs) => {
       if (!segs[0]) return segs;
@@ -494,10 +507,10 @@ const [departureDate, setDepartureDate] = useState(
     const label = travelers === 1 ? 'Adult' : 'Adults';
     return `${travelers} ${label}, ${getClassLabel()}`;
   };
-  
 
   const handleSearch = async (e) => {
     e.preventDefault();
+    setSearchError('');
 
     if (isMultiCity) {
       const segs = multiCitySegments.map((s) => ({
@@ -505,52 +518,99 @@ const [departureDate, setDepartureDate] = useState(
         to: s.to || '',
         departureDate: s.departureDate || '',
       }));
-      if (!segs.every((s) => s.from && s.to && s.departureDate)) return;
+      if (!segs.every((s) => s.from && s.to && s.departureDate)) {
+        setSearchError('Please fill in every city and date for your multi-city trip.');
+        return;
+      }
     } else if (!from || !to || !departureDate) {
-      setTouched({ from: true, to: true });
+      setTouched((t) => ({ ...t, from: true, to: true }));
+      setSearchError('Please select an origin, destination, and departure date.');
+      return;
+    } else if (isRoundTrip && !returnDate) {
+      setTouched((t) => ({ ...t, returnDate: true }));
+      setSearchError('Please select a return date for your round trip.');
       return;
     }
 
+    const fromCode = getAirportCode(isMultiCity ? multiCitySegments[0].from : from);
+    const toCode = getAirportCode(
+      isMultiCity ? multiCitySegments[multiCitySegments.length - 1].to : to
+    );
+
+    // Guard against a bad/unmatched city name producing `undefined` codes,
+    // which would otherwise be sent straight to the API.
+    if (!fromCode || !toCode) {
+      setSearchError('One of the selected cities could not be matched to an airport. Please re-select it from the dropdown.');
+      return;
+    }
+
+    const payload = {
+      from: fromCode,
+      to: toCode,
+      departureDate: isMultiCity ? multiCitySegments[0].departureDate : departureDate,
+      returnDate: isRoundTrip ? returnDate : '',
+      tripType,
+      adults: travelers,
+      children: 0,
+      travelClass,
+    };
+
+    setIsSearching(true);
     try {
-      const searchData = {
-        from: getAirportCode(isMultiCity ? multiCitySegments[0].from : from),
-        to: getAirportCode(isMultiCity ? multiCitySegments[multiCitySegments.length - 1].to : to),
-        departureDate: isMultiCity ? multiCitySegments[0].departureDate : departureDate,
-        returnDate: isRoundTrip ? returnDate : '',
-        tripType,
-        adults: travelers,
-        children: 0,
-        travelClass,
-      };
+      const response = await searchFlightsApi(payload);
 
-      const response = await searchFlightsApi(searchData);
-
-      dispatch(setFlights(response.data.data));
+      dispatch(setFlights(response?.data?.data ?? []));
 
       dispatch(
-        setTravelDetails({
-          name: '',
-          email: '',
-          tripType,
-          from: searchData.from,
-          to: searchData.to,
-          departureDate: new Date(searchData.departureDate).toISOString(),
-          returnDate: isRoundTrip && returnDate ? new Date(returnDate).toISOString() : '',
-          travelers,
-          travelClass,
-          ...(isMultiCity && {
-            multiCitySegments: multiCitySegments.map((s) => ({
-              from: s.from,
-              to: s.to,
-              departureDate: new Date(s.departureDate).toISOString(),
-            })),
-          }),
-        })
-      );
+  setTravelDetails({
+    tripType,
 
-      navigate('/search-flights');
+    from: payload.from,
+    to: payload.to,
+
+    fromCity: from,
+    toCity: to,
+
+    departureDate: payload.departureDate,
+    returnDate: isRoundTrip ? returnDate : "",
+
+    adults: travelers,
+    travelers,
+
+    travelClass,
+
+    ...(isMultiCity && {
+      multiCitySegments: multiCitySegments.map((s) => ({
+        from: s.from,
+        to: s.to,
+        departureDate: s.departureDate,
+      })),
+    }),
+  })
+);
+
+   
+      navigate('/search-flights', {
+        state: {
+          searchData: {
+            from,
+            to,
+            fromCity: from,
+            toCity: to,
+            departureDate: payload.departureDate,
+            returnDate: payload.returnDate,
+            tripType,
+            adults: travelers,
+            travelClass,
+          },
+        },
+      });
     } catch (error) {
       console.error(error);
+      // FIX #5 (cont.): surface the failure instead of failing silently.
+      setSearchError('Something went wrong while searching flights. Please try again.');
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -662,6 +722,9 @@ const [departureDate, setDepartureDate] = useState(
                   <p className="text-sm font-bold text-slate-800 whitespace-nowrap">
                     {formatShortDate(returnDate)}
                   </p>
+                  {touched.returnDate && !returnDate && (
+                    <p className="text-[10px] text-red-500">Required for round trip</p>
+                  )}
                   <HiddenDateInput id="ret-date-bar" value={returnDate} min={minReturnDate} onChange={setReturnDate} />
                 </div>
               )}
@@ -695,9 +758,10 @@ const [departureDate, setDepartureDate] = useState(
               {/* SEARCH */}
               <button
                 type="submit"
-                className="shrink-0 self-stretch px-8 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold text-sm tracking-wide transition-colors"
+                disabled={isSearching}
+                className="shrink-0 self-stretch px-8 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm tracking-wide transition-colors"
               >
-                SEARCH
+                {isSearching ? 'SEARCHING…' : 'SEARCH'}
               </button>
             </div>
           )}
@@ -743,9 +807,10 @@ const [departureDate, setDepartureDate] = useState(
 
               <button
                 type="submit"
-                className="shrink-0 px-8 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold text-sm tracking-wide transition-colors"
+                disabled={isSearching}
+                className="shrink-0 px-8 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm tracking-wide transition-colors"
               >
-                SEARCH
+                {isSearching ? 'SEARCHING…' : 'SEARCH'}
               </button>
             </div>
           )}
@@ -896,6 +961,13 @@ const [departureDate, setDepartureDate] = useState(
               </button>
             </div>
           </div>
+
+          {/* Search error banner — surfaces failures that were previously silent */}
+          {searchError && (
+            <div className="mt-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-600">
+              {searchError}
+            </div>
+          )}
         </div>
       </form>
     </section>

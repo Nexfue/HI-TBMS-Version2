@@ -14,6 +14,7 @@ import {
 import BookingFlightsSection from "../../Components/BookingFlightsection";
 import { useLocation } from "react-router-dom";
 import RoundTripResults from "../../Components/RoundTrip";
+import { selectTravelDetails } from "../../Store/slices/travelSlice";
 
 function DualRangeSlider({ min, max, values, onChange, formatLabel }) {
   const [low, high] = values;
@@ -231,14 +232,14 @@ export default function FlightBookingPage() {
   const [sortBy, setSortBy] = useState("best");
   const [saved, setSaved] = useState({});
   const flights = useSelector(selectFlights);
+const location = useLocation();
 
-  const location = useLocation();
-  const { searchData } = location.state || {};
-  console.log("FlightResults searchData:", searchData);
+const locationSearchData = location.state?.searchData;
 
-if (searchData?.tripType === "round-trip") {
-  return <RoundTripResults searchData={searchData} />;
-}
+const travelDetails = useSelector(selectTravelDetails);
+
+// Use location state first, otherwise use persisted Redux
+const searchData = locationSearchData || travelDetails;
 
   const toggleStop = (key) => setStops((s) => ({ ...s, [key]: !s[key] }));
 
@@ -257,9 +258,31 @@ if (searchData?.tripType === "round-trip") {
     const m = Math.round(mins % 60);
     return m ? `${h}h ${m}m` : `${h}h`;
   };
-  const flightList = Array.isArray(flights)
-  ? flights
-  : flights?.onward || []; 
+
+  /* ------------------------------------------------------------ */
+  /*  Trip-type detection                                          */
+  /*  - Redux `flights` is either a plain array (one-way) or an     */
+  /*    object shaped like { onward: [...], return: [...] }         */
+  /*    (round trip). We also fall back to searchData.tripType if   */
+  /*    it's available from the search form.                        */
+  /* ------------------------------------------------------------ */
+  const hasOnwardReturnShape =
+    !Array.isArray(flights) && flights?.onward && flights?.return;
+
+ const tripType = (
+  searchData?.tripType ||
+  travelDetails?.tripType ||
+  ""
+).toLowerCase();
+
+  const isRoundTrip =
+    hasOnwardReturnShape ||
+    tripType === "roundtrip" ||
+    tripType === "round-trip" ||
+    tripType === "round_trip";
+
+  const flightList = Array.isArray(flights) ? flights : flights?.onward || [];
+  const returnFlightList = !Array.isArray(flights) ? flights?.return || [] : [];
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -370,21 +393,23 @@ if (searchData?.tripType === "round-trip") {
                 formatLabel={formatMinutes}
               />
             </div>
-            <div>
-              <p className="mb-1 text-xs font-semibold text-slate-500">
-                Return
-              </p>
-              <p className="mb-1 text-xs text-slate-400">
-                12:00 a.m. – 11:59 p.m.
-              </p>
-              <DualRangeSlider
-                min={0}
-                max={1439}
-                values={returnRange}
-                onChange={setReturnRange}
-                formatLabel={formatMinutes}
-              />
-            </div>
+            {isRoundTrip && (
+              <div>
+                <p className="mb-1 text-xs font-semibold text-slate-500">
+                  Return
+                </p>
+                <p className="mb-1 text-xs text-slate-400">
+                  12:00 a.m. – 11:59 p.m.
+                </p>
+                <DualRangeSlider
+                  min={0}
+                  max={1439}
+                  values={returnRange}
+                  onChange={setReturnRange}
+                  formatLabel={formatMinutes}
+                />
+              </div>
+            )}
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -406,12 +431,12 @@ if (searchData?.tripType === "round-trip") {
         </aside>
 
         {/* -------------------------------------------------- */}
-        {/* Main results column */}
+        {/* Main results column (centre)                        */}
         {/* -------------------------------------------------- */}
         <section className="flex-1 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 text-sm text-slate-500">
-              1,043 results sorted by Best
+              {flightList.length} results sorted by Best
               <Info className="h-3.5 w-3.5" />
             </div>
             <button className="text-sm font-semibold text-teal-700 underline underline-offset-2">
@@ -453,14 +478,23 @@ if (searchData?.tripType === "round-trip") {
           </div>
 
           <div className="space-y-3">
-              {flightList.map((flight, index) => ( 
-              <FlightCard
-                key={flight.bookingToken || index}
-                flight={flight}
-                saved={!!saved[flight.bookingToken]}
-                onToggleSave={() => toggleSave(flight.bookingToken)}
+            {isRoundTrip ? (
+              <RoundTripResults
+                onwardFlights={flightList}
+                returnFlights={returnFlightList}
+                saved={saved}
+                onToggleSave={toggleSave}
               />
-            ))}
+            ) : (
+              flightList.map((flight, index) => (
+                <FlightCard
+                  key={flight.bookingToken || index}
+                  flight={flight}
+                  saved={!!saved[flight.bookingToken]}
+                  onToggleSave={() => toggleSave(flight.bookingToken)}
+                />
+              ))
+            )}
           </div>
         </section>
 
